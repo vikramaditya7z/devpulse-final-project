@@ -25,7 +25,7 @@ DevPulse/
 │   ├── src/
 │   │   ├── components/         # Reusable UI (Navbar, MetricCard, FindingsSection, ProtectedRoute)
 │   │   ├── context/            # AuthContext (user session, login, register, logout)
-│   │   ├── pages/              # Login, Register, Dashboard, RepoHealth, QuickAnalyze, NotFound
+│   │   ├── pages/              # Landing, Login, Register, Dashboard, RepoHealth, QuickAnalyze, PersonalReports, ReportDetail, Workspaces, WorkspaceDetail, WorkspaceRepoHealth, InviteAccept, NotFound
 │   │   ├── services/           # API client with credentials support (authApi, repoApi)
 │   │   ├── App.jsx             # React routing & layout wrapper
 │   │   └── main.jsx            # Entry point
