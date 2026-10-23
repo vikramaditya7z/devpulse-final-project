@@ -42,27 +42,27 @@ export const Login = () => {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mb-4">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 mb-4 shadow-xs">
             <Activity className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Welcome back</h2>
-          <p className="mt-2 text-sm text-slate-400">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Welcome back</h2>
+          <p className="mt-2 text-sm text-slate-600">
             Sign in to access your saved repositories and health analytics.
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 sm:p-8 shadow-xl backdrop-blur">
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
           {formError && (
-            <div className="mb-6 p-4 rounded-lg bg-red-950/50 border border-red-800 text-red-200 text-sm flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
               <div>{formError}</div>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
                 Email Address
               </label>
               <div className="relative">
@@ -75,13 +75,13 @@ export const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="student@university.edu"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -94,7 +94,7 @@ export const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
                 />
               </div>
             </div>
@@ -102,7 +102,7 @@ export const Login = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full mt-2 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 px-4 rounded-lg shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-2 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <>
@@ -118,9 +118,9 @@ export const Login = () => {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-700/60 text-center text-sm text-slate-400">
+          <div className="mt-6 pt-6 border-t border-slate-200 text-center text-sm text-slate-600">
             Don't have an account yet?{' '}
-            <Link to="/register" className="font-medium text-emerald-400 hover:text-emerald-300 hover:underline">
+            <Link to="/register" className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline">
               Create one now
             </Link>
           </div>

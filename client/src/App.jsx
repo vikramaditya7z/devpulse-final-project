@@ -1,9 +1,10 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
+import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
@@ -17,30 +18,16 @@ import { ReportDetail } from './pages/ReportDetail';
 import { InviteAccept } from './pages/InviteAccept';
 import { NotFound } from './pages/NotFound';
 
-const RootRedirect = () => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  return user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
-};
-
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="min-h-screen flex flex-col bg-slate-900 text-slate-100 selection:bg-emerald-500 selection:text-white">
+        <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white">
           <Navbar />
           <main className="flex-1">
             <Routes>
-              {/* Root index route */}
-              <Route path="/" element={<RootRedirect />} />
+              {/* Public Landing Page */}
+              <Route path="/" element={<Landing />} />
 
               {/* Public Authentication routes */}
               <Route path="/login" element={<Login />} />
@@ -65,7 +52,7 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
-          <footer className="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+          <footer className="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
             DevPulse &copy; 2026 — GitHub Project Health & Collaboration Platform
           </footer>
         </div>
