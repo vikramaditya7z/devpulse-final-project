@@ -139,12 +139,10 @@ DevPulse/
 │   └── package.json                 # Backend dependencies
 │
 ├── .gitignore                       # Root ignore (node_modules, .env, build)
-├── PROJECT.md                       # Product requirements & specs
-├── ARCHITECTURE.md                  # This document
-├── ENGINEERING_GUIDELINES.md        # Quality, security & code rules
-├── TASKS.md                         # Dependency-aware task backlog
-├── LOOP.md                          # Antigravity goal loop instructions
-├── AGENTS.md                        # Persistent agent directives
+├── README.md                        # Project overview & quickstart guide
+├── ARCHITECTURE.md                  # System architecture, schemas & API specifications
+├── DEMO_SCRIPT.md                   # Evaluator walkthrough demonstration script
+├── .env.example                     # Root environment configuration template
 └── package.json                     # Root package for workspace orchestration
 ```
 

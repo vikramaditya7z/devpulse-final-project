@@ -56,3 +56,11 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Local development & internal AI workflow files (preserved locally, untracked)
+LOOP.md
+AGENTS.md
+TASKS.md
+ENGINEERING_GUIDELINES.md
+PROJECT.md
+SUBMISSION_CHECKLIST.md

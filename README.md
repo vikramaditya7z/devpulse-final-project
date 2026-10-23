@@ -61,12 +61,10 @@ DevPulse/
 │   └── package.json
 │
 ├── .gitignore
-├── PROJECT.md                  # Product scope, permission matrix, demo flow
-├── ARCHITECTURE.md             # System boundaries & schema design
-├── ENGINEERING_GUIDELINES.md   # Coding standards & anti-patterns
-├── TASKS.md                    # Implementation backlog & tracking
-├── LOOP.md                     # Antigravity goal execution loop protocol
-├── AGENTS.md                   # Agent directives
+├── README.md                   # Project overview & documentation
+├── ARCHITECTURE.md             # System boundaries, data schemas & API design
+├── DEMO_SCRIPT.md              # Demonstration walkthrough script
+├── .env.example                # Reference environment template
 └── package.json                # Root project orchestration scripts
 ```
 
