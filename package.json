@@ -1,0 +1,25 @@
+{
+  "name": "devpulse",
+  "version": "1.0.0",
+  "description": "DevPulse — GitHub Project Health & Collaboration Platform",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix server && npm install --prefix client",
+    "server": "npm run start --prefix server",
+    "server:dev": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "test:server": "npm run test --prefix server",
+    "test": "npm run test --prefix server",
+    "start": "NODE_ENV=production node server/index.js"
+  },
+  "keywords": [
+    "github",
+    "metrics",
+    "mern",
+    "health",
+    "analytics"
+  ],
+  "author": "",
+  "license": "ISC"
+}

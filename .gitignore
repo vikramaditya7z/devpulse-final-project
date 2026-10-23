@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+.pnp
+.pnp.js
+
+# Environment variables & local credentials
+.env
+.env.*
+server/.env
+server/.env.*
+client/.env
+client/.env.*
+*.local
+
+# Safe template exceptions
+!.env.example
+!.env.sample
+!server/.env.example
+!server/.env.sample
+!client/.env.example
+!client/.env.sample
+
+# Credentials, Keys & Certificates
+*.pem
+*.key
+*.cert
+*.crt
+id_rsa
+id_dsa
+id_ed25519
+
+# Build outputs
+dist/
+client/dist/
+server/dist/
+build/
+
+# Logs & Debugging
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+*.log
+
+# Testing coverage & temporary artifacts
+coverage/
+.nyc_output/
+*.lcov
+
+# OS / Editor temporary files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
