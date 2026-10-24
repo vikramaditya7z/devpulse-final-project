@@ -3,6 +3,7 @@ const app = require('../app');
 const Workspace = require('../models/Workspace');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const SavedRepository = require('../models/SavedRepository');
+const HealthReport = require('../models/HealthReport');
 const githubService = require('../services/githubService');
 const { generateToken } = require('../utils/jwt');
 
@@ -171,7 +172,7 @@ describe('Workspace Repositories Management Integration Tests', () => {
       expect(res.body.error.code).toBe('OWNER_ROLE_REQUIRED');
     });
 
-    test('owner can remove workspace repository successfully', async () => {
+    test('owner can remove workspace repository successfully and cascade delete reports', async () => {
       jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspace);
       jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue({
         workspace: workspaceId,
@@ -184,12 +185,20 @@ describe('Workspace Repositories Management Integration Tests', () => {
         fullName: 'facebook/react'
       });
 
+      const deleteReportsSpy = jest.spyOn(HealthReport, 'deleteMany').mockResolvedValue({ deletedCount: 2 });
+
       const res = await request(app)
         .delete(`/api/workspaces/${workspaceId}/repos/${repoId}`)
         .set('Cookie', [`token=${ownerToken}`]);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+      expect(deleteReportsSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspace: workspaceId,
+          scope: 'workspace'
+        })
+      );
     });
   });
 

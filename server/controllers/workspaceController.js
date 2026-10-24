@@ -322,7 +322,7 @@ const getWorkspaceOverview = async (req, res, next) => {
   try {
     const workspaceId = req.workspace._id;
 
-    // 1. Fetch repositories, members, pending invitations, and reports
+    // 1. Fetch repositories, members, and pending invitations
     const [savedRepos, members, pendingInvites, totalReportsCount] = await Promise.all([
       SavedRepository.find({ workspace: workspaceId, scope: 'workspace' })
         .populate('addedBy', 'name email')

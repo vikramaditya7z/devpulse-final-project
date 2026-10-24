@@ -298,17 +298,45 @@ const generateWorkspaceReport = async (req, res, next) => {
  */
 const getWorkspaceReports = async (req, res, next) => {
   try {
+    const workspaceId = req.workspace._id;
+
+    // Fetch active repositories in this workspace
+    const activeRepos = await SavedRepository.find({
+      workspace: workspaceId,
+      scope: 'workspace'
+    }).select('fullName');
+
+    const activeFullNames = new Set((activeRepos || []).map((r) => (r.fullName || '').toLowerCase()));
+
     const reports = await HealthReport.find({
-      workspace: req.workspace._id,
+      workspace: workspaceId,
       scope: 'workspace'
     })
       .populate('createdBy', 'name email')
       .sort({ generatedAt: -1 });
 
+    // Filter out reports for repositories that are no longer in this workspace
+    const validReports = reports.filter((rep) =>
+      activeFullNames.has((rep.repository?.fullName || '').toLowerCase())
+    );
+
+    // Asynchronously clean up any orphaned reports if connected to DB
+    const orphanedReports = reports.filter(
+      (rep) => !activeFullNames.has((rep.repository?.fullName || '').toLowerCase())
+    );
+    if (orphanedReports.length > 0 && mongoose.connection.readyState === 1) {
+      const orphanedIds = orphanedReports.map((r) => r._id);
+      HealthReport.deleteMany({
+        _id: { $in: orphanedIds },
+        workspace: workspaceId,
+        scope: 'workspace'
+      }).catch(() => {});
+    }
+
     return res.status(200).json({
       success: true,
       data: {
-        reports
+        reports: validReports
       }
     });
   } catch (error) {
@@ -644,6 +672,22 @@ const getRepositorySnapshots = async (req, res, next) => {
           error: {
             code: 'NOT_A_WORKSPACE_MEMBER',
             message: 'You are not an authorized member of this workspace.'
+          }
+        });
+      }
+
+      // Verify the repository is actively shared in the workspace
+      const activeInWorkspace = await SavedRepository.findOne({
+        workspace: workspaceId,
+        scope: 'workspace',
+        fullName: new RegExp(`^${fullName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+      });
+
+      if (!activeInWorkspace) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            snapshots: []
           }
         });
       }

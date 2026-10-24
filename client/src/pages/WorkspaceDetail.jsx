@@ -60,6 +60,10 @@ export const WorkspaceDetail = () => {
   const [repoToDelete, setRepoToDelete] = useState(null);
   const [deletingRepo, setDeletingRepo] = useState(false);
 
+  // Delete report modal state
+  const [reportToDelete, setReportToDelete] = useState(null);
+  const [deletingReport, setDeletingReport] = useState(false);
+
   // Generate Report state
   const [generatingReportId, setGeneratingReportId] = useState(null);
 
@@ -152,13 +156,30 @@ export const WorkspaceDetail = () => {
     try {
       await workspaceApi.deleteWorkspaceRepo(id, repoToDelete._id);
       setRepos((prev) => prev.filter((r) => r._id !== repoToDelete._id));
-      setNotification(`Removed "${repoToDelete.fullName}" from workspace.`);
+      setReports((prev) => prev.filter((r) => (r.repository?.fullName || '').toLowerCase() !== (repoToDelete.fullName || '').toLowerCase()));
+      setNotification(`Removed "${repoToDelete.fullName}" and its workspace reports from workspace.`);
       setRepoToDelete(null);
     } catch (err) {
       setError(err.message || 'Failed to remove repository.');
       setRepoToDelete(null);
     } finally {
       setDeletingRepo(false);
+    }
+  };
+
+  const handleDeleteWorkspaceReport = async () => {
+    if (!reportToDelete) return;
+    setDeletingReport(true);
+    try {
+      await workspaceApi.deleteWorkspaceReport(id, reportToDelete._id);
+      setReports((prev) => prev.filter((r) => r._id !== reportToDelete._id));
+      setNotification(`Report snapshot for "${reportToDelete.repository?.fullName}" deleted.`);
+      setReportToDelete(null);
+    } catch (err) {
+      setError(err.message || 'Failed to delete report snapshot.');
+      setReportToDelete(null);
+    } finally {
+      setDeletingReport(false);
     }
   };
 
@@ -963,6 +984,16 @@ export const WorkspaceDetail = () => {
                               <span>View Snapshot</span>
                               <ArrowRight className="w-3 h-3" />
                             </Link>
+
+                            {isOwner && (
+                              <button
+                                onClick={() => setReportToDelete(rep)}
+                                className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                                title="Delete report snapshot"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1197,7 +1228,7 @@ export const WorkspaceDetail = () => {
           <div className="bg-[#101625] border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-slate-100 mb-2">Remove Shared Repository?</h3>
             <p className="text-xs text-slate-400 mb-6">
-              Are you sure you want to remove <span className="font-semibold text-slate-200 font-mono">{repoToDelete.fullName}</span> from this workspace? Members will no longer see it in this workspace.
+              Are you sure you want to remove <span className="font-semibold text-slate-200 font-mono">{repoToDelete.fullName}</span> from this workspace? Associated workspace reports will also be cleaned up.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
@@ -1212,6 +1243,36 @@ export const WorkspaceDetail = () => {
                 className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-lg shadow-rose-600/30 transition disabled:opacity-50"
               >
                 {deletingRepo ? 'Removing...' : 'Confirm Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Workspace Report Modal */}
+      {reportToDelete && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#101625] border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-100 mb-2 flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-rose-400" />
+              Delete Report Snapshot?
+            </h3>
+            <p className="text-xs text-slate-400 mb-6">
+              Are you sure you want to delete this historical report snapshot for <span className="font-semibold text-slate-200 font-mono">{reportToDelete.repository?.fullName}</span>? This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setReportToDelete(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 bg-[#0d121f] border border-slate-700/80 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteWorkspaceReport}
+                disabled={deletingReport}
+                className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-lg shadow-rose-600/30 transition disabled:opacity-50"
+              >
+                {deletingReport ? 'Deleting...' : 'Delete Report'}
               </button>
             </div>
           </div>

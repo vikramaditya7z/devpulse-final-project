@@ -193,6 +193,72 @@ describe('Persistent Health Reports Integration Tests', () => {
       expect(res.body.error.code).toBe('NOT_A_WORKSPACE_MEMBER');
     });
 
+    test('WORKSPACE REPORTS: filters out orphaned reports for deleted repositories', async () => {
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspace);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue({
+        workspace: workspaceId,
+        user: user1Id,
+        role: 'owner'
+      });
+
+      // Active repos in workspace only includes 'facebook/react' (expressjs/express was deleted)
+      jest.spyOn(SavedRepository, 'find').mockReturnValue({
+        select: jest.fn().mockResolvedValue([{ fullName: 'facebook/react' }])
+      });
+
+      const mockReports = [
+        {
+          _id: 'report_react_1',
+          repository: { fullName: 'facebook/react' },
+          metrics: { healthScore: 85 }
+        },
+        {
+          _id: 'report_orphaned_express',
+          repository: { fullName: 'expressjs/express' },
+          metrics: { healthScore: 47 }
+        }
+      ];
+
+      jest.spyOn(HealthReport, 'find').mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          sort: jest.fn().mockResolvedValue(mockReports)
+        })
+      });
+
+      const res = await request(app)
+        .get(`/api/workspaces/${workspaceId}/reports`)
+        .set('Cookie', [`token=${user1Token}`]);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      // Orphaned express report should NOT be returned
+      expect(res.body.data.reports.length).toBe(1);
+      expect(res.body.data.reports[0].repository.fullName).toBe('facebook/react');
+    });
+
+    test('WORKSPACE REPORT DELETION: owner can delete an individual workspace report', async () => {
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspace);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue({
+        workspace: workspaceId,
+        user: user1Id,
+        role: 'owner'
+      });
+
+      jest.spyOn(HealthReport, 'findOneAndDelete').mockResolvedValue({
+        _id: reportId,
+        workspace: workspaceId,
+        scope: 'workspace'
+      });
+
+      const res = await request(app)
+        .delete(`/api/workspaces/${workspaceId}/reports/${reportId}`)
+        .set('Cookie', [`token=${user1Token}`]);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.message).toContain('deleted successfully');
+    });
+
     test('SNAPSHOT IMMUTABILITY: report retains original snapshot metrics even when live analysis changes', async () => {
       // Stored report has 2 open issues and score 75
       const storedReport = {

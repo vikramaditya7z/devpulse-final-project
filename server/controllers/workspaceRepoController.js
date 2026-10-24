@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const SavedRepository = require('../models/SavedRepository');
+const HealthReport = require('../models/HealthReport');
 const githubService = require('../services/githubService');
 const analysisService = require('../services/analysisService');
 
@@ -167,10 +168,17 @@ const deleteWorkspaceRepo = async (req, res, next) => {
       });
     }
 
+    // Cascade delete any persistent health reports associated with this repository in this workspace
+    await HealthReport.deleteMany({
+      workspace: req.workspace._id,
+      scope: 'workspace',
+      'repository.fullName': new RegExp(`^${deleted.fullName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+    });
+
     return res.status(200).json({
       success: true,
       data: {
-        message: `Repository "${deleted.fullName}" removed from workspace.`
+        message: `Repository "${deleted.fullName}" and its associated workspace reports removed from workspace.`
       }
     });
   } catch (error) {
