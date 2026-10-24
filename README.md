@@ -1,8 +1,22 @@
 # DevPulse — GitHub Project Health & Collaboration Platform
 
-DevPulse is a collaborative web platform designed for student and small engineering teams to monitor public GitHub repositories, calculate deterministic health metrics, and pinpoint collaboration bottlenecks (stale issues, old unmerged pull requests, and review deadlocks).
+DevPulse is a collaborative web platform designed for engineering teams and student project groups to monitor public GitHub repositories, calculate deterministic health metrics, and identify collaboration bottlenecks such as stale issues, overdue pull requests, and review deadlocks.
 
-Built for a university end-term software engineering capstone project (Due: October 27, 2026).
+**Live Production Deployment:** [https://devpulse-final-project.onrender.com](https://devpulse-final-project.onrender.com)  
+**University Submission Date:** October 27, 2026  
+
+---
+
+## Key Features
+
+- **Public GitHub Repository Analysis:** On-demand and saved repository diagnostics executed directly against the GitHub REST API v3 without requiring private permissions.
+- **Deterministic 4-Dimensional Health Scoring:** Transparent score (0–100) calculated across Pull Request Velocity (30%), Backlog Hygiene (25%), Commit Cadence (25%), and Review Responsiveness (20%).
+- **Explainable Bottlenecks & Rule-Based Actions:** Clear diagnostic flags (stale issues >30 days, old open PRs >14 days, review inactivity >7 days) paired with prescriptive, rule-based recommendations.
+- **Team Workspaces & Shared Repositories:** Multi-repository collaboration spaces with role-based access control (Owner vs. Member) and single-use, cryptographically hashed (SHA-256) invitation links.
+- **Workspace Project Overview & Priorities:** Aggregated workspace health KPIs and automatically prioritized top 10 actionable team priorities ranked by critical severity and days inactive.
+- **Historical Snapshot Comparisons:** Chronological diffing of any two report snapshots showing net score movement, dimensional changes, key metric transitions, and bottleneck evolution (*Newly Detected*, *Resolved*, and *Persisting*).
+- **Snapshot Immutability:** Historical reports are permanently sealed upon generation; mutation attempts (`PUT` and `PATCH`) are strictly rejected with HTTP 405 Method Not Allowed.
+- **Secure Authentication & RBAC:** Direct Express authentication with bcrypt password hashing (cost factor ≥ 10), signed JWTs stored in HttpOnly/SameSite cookies, and strict backend authorization.
 
 ---
 
@@ -13,7 +27,7 @@ Built for a university end-term software engineering capstone project (Due: Octo
 - **Database:** MongoDB & Mongoose ODM
 - **Authentication:** Direct Express + bcrypt password hashing + signed JSON Web Tokens (JWT) in secure HttpOnly cookies + cookie-parser
 - **External Integration:** GitHub REST API v3 (`https://api.github.com`)
-- **Testing:** Jest, Supertest, MongoDB In-Memory Server (`mongodb-memory-server`)
+- **Testing:** Jest, Supertest, MongoDB In-Memory Server (`mongodb-memory-server`), Headless Google Chrome
 
 ---
 
@@ -26,9 +40,9 @@ DevPulse/
 │   │   ├── components/         # Reusable UI (Navbar, MetricCard, FindingsSection, DimensionalBreakdown, ProtectedRoute)
 │   │   ├── context/            # AuthContext (user session, login, register, logout)
 │   │   ├── pages/              # Landing, Login, Register, Dashboard, RepoHealth, QuickAnalyze, PersonalReports, ReportDetail, ReportCompare, Workspaces, WorkspaceDetail, WorkspaceRepoHealth, InviteAccept, NotFound
-│   │   ├── services/           # API client with credentials support (authApi, repoApi)
-│   │   ├── App.jsx             # React routing & layout wrapper
-│   │   └── main.jsx            # Entry point
+│   │   ├── services/           # Axios-like Fetch API client (authApi, repoApi, workspaceApi, reportApi, inviteApi)
+│   │   ├── App.jsx             # React routing & application layout
+│   │   └── main.jsx            # React entrypoint
 │   ├── index.html
 │   ├── tailwind.config.js
 │   ├── vite.config.js
@@ -38,40 +52,55 @@ DevPulse/
 │   ├── config/
 │   │   └── db.js               # Mongoose connection & lifecycle management
 │   ├── controllers/
-│   │   ├── authController.js   # Register, Login, Me, Logout
-│   │   └── repoController.js   # Save repo, list repos, health analysis, delete repo
+│   │   ├── authController.js   # User registration, authentication, session profile, logout
+│   │   ├── repoController.js   # Personal saved repositories & on-demand health analysis
+│   │   ├── workspaceController.js     # Workspace lifecycle, overview KPIs, team priorities, members
+│   │   ├── workspaceRepoController.js # Workspace shared repositories & repo health
+│   │   ├── reportController.js        # Persistent snapshots, immutability, & comparison
+│   │   └── inviteController.js        # Cryptographic single-use invitation tokens & redemption
 │   ├── middlewares/
-│   │   ├── authMiddleware.js   # HttpOnly cookie JWT verification & req.user attachment
+│   │   ├── authMiddleware.js   # HttpOnly JWT verification & req.user attachment
+│   │   ├── rbacMiddleware.js   # Workspace membership & Owner role authorization
+│   │   ├── securityMiddleware.js # Rate limiting, Helmet headers, CORS policies
 │   │   └── errorHandler.js     # Centralized error formatting & HTTP status codes
 │   ├── models/
-│   │   ├── User.js             # User schema with bcrypt pre-save hashing & safe JSON serialization
-│   │   └── SavedRepository.js  # Saved public repository schema with per-user compound unique index
+│   │   ├── User.js             # User credentials with bcrypt pre-save hashing
+│   │   ├── SavedRepository.js  # Saved repository schema (personal and workspace scopes)
+│   │   ├── Workspace.js        # Team workspace metadata and ownership
+│   │   ├── WorkspaceMember.js  # Workspace membership mapping with role (owner / member)
+│   │   ├── WorkspaceInvitation.js # Single-use invitation tokens (SHA-256 hashed)
+│   │   └── HealthReport.js     # Immutable historical health metrics & findings snapshot
 │   ├── routes/
 │   │   ├── authRoutes.js       # /api/auth endpoints
-│   │   └── repoRoutes.js       # /api/repos endpoints
+│   │   ├── repoRoutes.js       # /api/repos endpoints
+│   │   ├── workspaceRoutes.js  # /api/workspaces endpoints (overview, repos, reports, members)
+│   │   ├── reportRoutes.js     # /api/reports endpoints (personal snapshots & comparisons)
+│   │   └── inviteRoutes.js     # /api/invitations endpoints (preview & acceptance)
 │   ├── services/
 │   │   ├── githubService.js    # Direct GitHub REST API v3 client with in-memory TTL caching
 │   │   ├── analysisService.js  # Pure deterministic metrics & 4D bounded bottleneck calculations
 │   │   └── comparisonService.js # Deterministic snapshot diffing, metrics transition, and change summaries
 │   ├── utils/
-│   │   └── jwt.js              # Token signing, verification, and cookie helper
-│   ├── tests/                  # Automated Jest + Supertest suites
+│   │   ├── jwt.js              # Token signing, verification, and cookie helper
+│   │   ├── crypto.js           # SHA-256 token hashing and secure random generators
+│   │   └── urlHelper.js        # Canonical GitHub URL parsing and normalization
+│   ├── tests/                  # Automated Jest + Supertest test suites (16 suites, 157 tests)
 │   ├── app.js                  # Express middleware & route definitions (exported for testing)
 │   ├── index.js                # Server entrypoint & DB connection bootstrap
 │   ├── .env.example
 │   └── package.json
 │
-├── .gitignore
-├── README.md                   # Project overview & documentation
+├── reports/
+│   └── DEV_DEMO_READINESS.md   # Comprehensive QA audit, browser verification, & demo walkthrough
 ├── ARCHITECTURE.md             # System boundaries, data schemas & API design
-├── DEMO_SCRIPT.md              # Demonstration walkthrough script
-├── .env.example                # Reference environment template
-└── package.json                # Root project orchestration scripts
+├── PROJECT.md                  # Product scope, permission matrix, & non-goals
+├── package.json                # Root project orchestration scripts
+└── README.md                   # Project overview & documentation
 ```
 
 ---
 
-## 3. Environment Variables Configuration
+## 3. Environment Variables & Security
 
 ### Backend (`server/.env`)
 
@@ -81,15 +110,22 @@ Copy `server/.env.example` to `server/.env`:
 cp server/.env.example server/.env
 ```
 
-| Variable | Description | Default / Example |
-| :--- | :--- | :--- |
-| `PORT` | Port for the backend server | `5001` |
-| `MONGO_URI` | MongoDB connection string | `mongodb://127.0.0.1:27017/devpulse` |
-| `JWT_SECRET` | Secret key used to sign JWTs (min 32 chars) | `devpulse_jwt_secret_dev_key_at_least_32_chars_long` |
-| `JWT_EXPIRES_IN` | Token expiration duration | `24h` |
-| `COOKIE_SECURE` | Set to `true` in production with HTTPS | `false` |
-| `CLIENT_URL` | Frontend origin for CORS | `http://localhost:5173` |
-| `GITHUB_TOKEN` | *(Optional)* GitHub Personal Access Token to raise rate limits | `ghp_...` |
+| Variable | Description | Local Development Default | Production Requirement |
+| :--- | :--- | :--- | :--- |
+| `PORT` | Port for the Express server | `5001` | Assigned by host environment (e.g., Render) |
+| `NODE_ENV` | Runtime environment mode | `development` | Set to `production` |
+| `MONGO_URI` | MongoDB connection URI | `mongodb://127.0.0.1:27017/devpulse` | Production MongoDB Atlas connection string |
+| `JWT_SECRET` | Secret key used to sign JWTs | `replace-with-a-long-random-secret-min-32-chars` | **Must be a strong, unique secret (minimum 32 random characters)** |
+| `JWT_EXPIRES_IN` | Token expiration duration | `24h` | `24h` |
+| `COOKIE_SECURE` | Enforces HTTPS-only cookies | `false` | `true` (Enforced over HTTPS) |
+| `COOKIE_SAMESITE`| Cookie SameSite policy | `lax` | `lax` for unified hosting, `none` for split domains |
+| `CLIENT_URL` | Allowed frontend origin for CORS | `http://localhost:5173` | Production frontend domain (e.g., `https://devpulse-final-project.onrender.com`) |
+| `GITHUB_TOKEN` | *(Optional)* Personal Access Token | *(empty)* | Optional. Increases GitHub API rate limit from 60 to 5,000 req/hr |
+
+> **Security Invariants:**
+> - The example `JWT_SECRET` in `.env.example` is strictly for local testing. In production, a cryptographically secure, unpredictable secret must be configured via environment variables.
+> - Plaintext invitation tokens and passwords are never stored in the database. Passwords use `bcrypt` (salt rounds ≥ 10); invitation tokens are hashed with SHA-256 before storage.
+> - Secrets, environment files (`.env`), and tokens are excluded from Git via `.gitignore`.
 
 ### Frontend (`client/.env`)
 
@@ -101,32 +137,32 @@ cp client/.env.example client/.env
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| `VITE_API_BASE_URL` | Base URL for backend API calls | `/api` (proxied by Vite) or `http://localhost:5001/api` |
+| `VITE_API_BASE_URL` | Base URL for API calls | `/api` (proxied by Vite in dev; same-origin in production) |
 
 ---
 
-## 4. Installation & Quickstart
+## 4. Installation & Development Commands
 
-### Step 1: Install all dependencies
+### Step 1: Install Dependencies
 
 From the project root:
-
 ```bash
 npm run install:all
 ```
-
-Or individually:
+*Or install separately in each folder:*
 ```bash
 cd server && npm install
 cd ../client && npm install
 ```
 
-### Step 2: Start MongoDB
-Ensure a MongoDB instance is accessible (e.g. local MongoDB service on `mongodb://127.0.0.1:27017/devpulse` or a MongoDB Atlas URI configured in `server/.env`).
+### Step 2: Configure Environment
 
-> **Note for Testing:** The automated test suite uses `mongodb-memory-server` and does **not** require a running local MongoDB daemon to execute tests.
+Ensure `server/.env` exists with valid configuration:
+```bash
+cp server/.env.example server/.env
+```
 
-### Step 3: Run the Application
+### Step 3: Run the Local Development Servers
 
 In terminal 1 (start backend API server):
 ```bash
@@ -142,98 +178,114 @@ npm run client
 
 Open `http://localhost:5173` in your browser.
 
+### Step 4: Production Build & Startup
+
+To build and run the production application locally:
+```bash
+# Build the client production bundle
+npm run build
+
+# Start the unified production server (serves API and client/dist static assets)
+npm start
+```
+
 ---
 
-## 5. API Overview
+## 5. API Reference
 
-All API responses follow a consistent JSON envelope format:
-- Success: `{ "success": true, "data": { ... } }`
-- Error: `{ "success": false, "error": { "code": "...", "message": "..." } }`
+All API responses follow a uniform JSON envelope format:
+- **Success:** `{ "success": true, "data": { ... } }`
+- **Error:** `{ "success": false, "error": { "code": "...", "message": "..." } }`
 
-### Authentication Endpoints (`/api/auth`)
-
-| Method | Endpoint | Description | Auth Required |
+### System Health
+| Method | Endpoint | Description | Access |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/api/auth/register` | Register new user (name, email, password min 8 chars). Sets HttpOnly JWT cookie. | No |
-| `POST` | `/api/auth/login` | Authenticate with email/password. Sets HttpOnly JWT cookie. | No |
-| `GET` | `/api/auth/me` | Retrieve authenticated user profile. | Yes (Cookie) |
-| `POST` | `/api/auth/logout` | Clears authentication cookie. | Yes (Cookie) |
+| `GET` | `/api/health` | Returns service health status and timestamp. | Public |
 
-### Repository Health Endpoints (`/api/repos`)
-
-| Method | Endpoint | Description | Auth Required |
+### Authentication (`/api/auth`)
+| Method | Endpoint | Description | Access |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/api/repos` | Save public repo by `{ repoIdentifier }` (e.g., `owner/repo` or full URL). Verifies on GitHub. | Yes |
-| `GET` | `/api/repos` | List current user's saved repositories. | Yes |
-| `GET` | `/api/repos/:id/health` | Calculate deterministic metrics & bottlenecks for a saved repo. | Yes |
-| `POST` | `/api/repos/analyze` | Run on-demand health analysis on any public repo without saving. | Yes |
-| `DELETE`| `/api/repos/:id` | Remove a repository from user's dashboard (verifies user ownership). | Yes |
+| `POST` | `/api/auth/register` | Register new user. Sets HttpOnly JWT session cookie. | Public |
+| `POST` | `/api/auth/login` | Authenticate with email/password. Sets HttpOnly JWT cookie. | Public |
+| `GET` | `/api/auth/me` | Retrieve authenticated user profile. | Authenticated |
+| `POST` | `/api/auth/logout` | Clears authentication session cookie. | Authenticated |
 
-### Team Workspace Endpoints (`/api/workspaces`)
-
-| Method | Endpoint | Description | Role / Auth |
+### Personal Repositories (`/api/repos`)
+| Method | Endpoint | Description | Access |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/api/workspaces` | Create workspace; creator automatically assigned Owner role. | Authenticated User |
-| `GET` | `/api/workspaces` | List all workspaces accessible to current user with role badges. | Authenticated User |
+| `POST` | `/api/repos` | Save public repo by `{ repoIdentifier }` (`owner/repo` or URL). | Authenticated |
+| `GET` | `/api/repos` | List current user's saved repositories. | Authenticated |
+| `POST` | `/api/repos/analyze` | On-demand health analysis of any public repo without saving. | Authenticated |
+| `GET` | `/api/repos/:id/health` | Calculate live health metrics for a saved repository. | Authenticated |
+| `DELETE`| `/api/repos/:id` | Remove a repository from the user's dashboard. | Authenticated |
+
+### Team Workspaces (`/api/workspaces`)
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :---: |
+| `POST` | `/api/workspaces` | Create a new team workspace (creator assigned Owner). | Authenticated |
+| `GET` | `/api/workspaces` | List all workspaces accessible to the authenticated user. | Authenticated |
 | `GET` | `/api/workspaces/:id` | Get workspace details and member list. | Workspace Member |
-| `GET` | `/api/workspaces/:id/overview` | Get comprehensive workspace pulse, shared repo statuses, and team priorities. | Workspace Member |
-| `PATCH`| `/api/workspaces/:id` | Rename workspace name and description. | Workspace Owner |
-| `DELETE`| `/api/workspaces/:id` | Delete workspace and cascade-delete memberships, invites, repos, and reports. | Workspace Owner |
-| `GET` | `/api/workspaces/:id/members` | List workspace members with roles. | Workspace Member |
-| `DELETE`| `/api/workspaces/:id/members/:userId` | Remove member from workspace (cannot remove owner). | Workspace Owner |
-| `POST` | `/api/workspaces/:id/leave` | Leave workspace (regular members only). | Workspace Member |
-| `POST` | `/api/workspaces/:id/invitations` | Generate 48h single-use invitation link (stores SHA-256 hash). | Workspace Owner |
-| `GET` | `/api/workspaces/:id/invitations` | List pending invitations (never leaks token hashes). | Workspace Owner |
-| `DELETE`| `/api/workspaces/:id/invitations/:inviteId` | Revoke an active invitation. | Workspace Owner |
-| `GET` | `/api/workspaces/:id/repos` | List repositories shared with the workspace. | Workspace Member |
+| `GET` | `/api/workspaces/:id/overview` | Aggregated workspace pulse KPIs and top 10 team priorities. | Workspace Member |
+| `PATCH`| `/api/workspaces/:id` | Rename workspace name or description. | Workspace Owner |
+| `DELETE`| `/api/workspaces/:id` | Delete workspace and cascade-delete members, repos, and reports. | Workspace Owner |
+| `GET` | `/api/workspaces/:id/members` | List workspace members with assigned roles. | Workspace Member |
+| `DELETE`| `/api/workspaces/:id/members/:userId` | Remove member from workspace (cannot remove Owner). | Workspace Owner |
+| `POST` | `/api/workspaces/:id/leave` | Leave workspace (regular members only; Owner must transfer/delete). | Workspace Member |
+| `POST` | `/api/workspaces/:id/invitations` | Generate 48-hour single-use invitation link (stores SHA-256 hash). | Workspace Owner |
+| `GET` | `/api/workspaces/:id/invitations` | List active pending invitations (hashes never exposed). | Workspace Owner |
+| `DELETE`| `/api/workspaces/:id/invitations/:inviteId` | Revoke a pending invitation link. | Workspace Owner |
+| `GET` | `/api/workspaces/:id/repos` | List repositories shared in the workspace. | Workspace Member |
 | `POST` | `/api/workspaces/:id/repos` | Add public GitHub repository to workspace. | Workspace Member |
+| `GET` | `/api/workspaces/:id/repos/:repoId/health` | Calculate live health metrics for workspace repository. | Workspace Member |
 | `DELETE`| `/api/workspaces/:id/repos/:repoId` | Remove repository from workspace. | Workspace Owner |
-| `GET` | `/api/workspaces/:id/repos/:repoId/health` | Calculate live health metrics for workspace repo. | Workspace Member |
-| `GET` | `/api/workspaces/:id/reports` | List persistent health reports for workspace. | Workspace Member |
 | `POST` | `/api/workspaces/:id/reports` | Generate persistent health report snapshot in workspace. | Workspace Member |
+| `GET` | `/api/workspaces/:id/reports` | List persistent health reports saved in workspace. | Workspace Member |
+| `GET` | `/api/workspaces/:id/reports/:reportId` | View workspace report snapshot. | Workspace Member |
 | `DELETE`| `/api/workspaces/:id/reports/:reportId` | Delete workspace report snapshot. | Workspace Owner |
+| `PUT/PATCH`| `/api/workspaces/:id/reports/:reportId` | Strictly rejected (405 Method Not Allowed) to enforce immutability. | N/A |
 
-### Persistent Health Report Endpoints (`/api/reports`)
-
-| Method | Endpoint | Description | Role / Auth |
+### Persistent Reports & Comparisons (`/api/reports`)
+| Method | Endpoint | Description | Access |
 | :--- | :--- | :--- | :---: |
-| `GET` | `/api/reports/compare` | Compare two historical report snapshots (score delta, dimensions, metrics, finding transitions). | Authenticated User |
-| `GET` | `/api/reports/repository-snapshots` | Query historical snapshots for a repository (personal or workspace). | Authenticated User |
-| `GET` | `/api/reports/personal` | List personal generated report snapshots. | Authenticated User |
-| `POST` | `/api/reports/personal` | Generate immutable report snapshot for personal saved repo. | Authenticated User |
+| `GET/POST`| `/api/reports/compare` | Compare two historical snapshots (delta, dimensions, transitions). | Authenticated |
+| `GET` | `/api/reports/repository-snapshots` | Query historical snapshots available for a repository. | Authenticated |
+| `GET` | `/api/reports/personal` | List personal generated report snapshots. | Authenticated |
+| `POST` | `/api/reports/personal` | Generate immutable report snapshot for personal saved repo. | Authenticated |
 | `GET` | `/api/reports/personal/:id` | View personal report snapshot. | Creator Only |
 | `DELETE`| `/api/reports/personal/:id` | Delete personal report snapshot. | Creator Only |
-| `GET` | `/api/reports/:id` | Unified report lookup (verifies personal creator or workspace membership). | Authenticated User |
-| `PUT/PATCH`| `/api/reports/:id` | Strictly rejected (405 Method Not Allowed) to enforce snapshot immutability. | N/A |
+| `GET` | `/api/reports/:id` | Unified report lookup (verifies personal creator or workspace member). | Authenticated |
+| `PUT/PATCH`| `/api/reports/:id` | Strictly rejected (405 Method Not Allowed) to enforce immutability. | N/A |
 
-### Invitation Endpoints (`/api/invitations`)
-
-| Method | Endpoint | Description | Role / Auth |
+### Invitations (`/api/invitations`)
+| Method | Endpoint | Description | Access |
 | :--- | :--- | :--- | :---: |
-| `GET` | `/api/invitations/validate/:token` | Preview invitation workspace details before joining. | Public |
-| `POST` | `/api/invitations/accept` | Accept single-use invitation and join as Workspace Member. | Authenticated User |
+| `GET` | `/api/invitations/validate/:token` | Preview workspace name and inviter before accepting. | Public |
+| `POST` | `/api/invitations/accept` | Accept single-use invitation token and join workspace. | Authenticated |
 
 ---
 
 ## 6. Deterministic Bottleneck Detection Rules
 
-DevPulse uses 100% explainable, deterministic rules without artificial hallucinations or mock metrics:
+DevPulse uses 100% explainable, deterministic rules without speculative or artificial metrics:
 
-1. **Stale Issues:** Flagged when an open issue has had zero comments or updates for **> 30 days**.
-2. **Old Open PRs:** Flagged when a pull request has been open without merge for **> 14 days**.
-3. **Review Inactivity:** Flagged **only** when GitHub review data is explicitly verified, reviewers were requested, and **> 7 days** have elapsed with zero review submissions. *(Invariant: If review data is unavailable, the review inactivity flag is strictly omitted).*
+1. **Stale Issues:** Flagged when an open issue has had zero comments or activity for **> 30 days**.
+2. **Old Open PRs:** Flagged when a pull request has remained open without merge for **> 14 days**.
+3. **Review Inactivity:** Flagged **only** when GitHub review data confirms reviewers were requested and **> 7 days** have passed with zero submitted reviews. *(Invariant: If review data is unavailable from GitHub, review inactivity is strictly not flagged).*
 
 ---
 
 ## 7. Running Automated Tests
 
-Run backend tests from the project root:
+DevPulse maintains a 100% passing test suite across 16 test suites covering security RBAC, immutability, comparisons, and workflows.
 
+The test suite uses `mongodb-memory-server` and does **not** require a running local MongoDB instance.
+
+Run tests from the project root:
 ```bash
 npm test
 ```
 
-Or from the `server/` directory:
+Or run directly from the `server/` directory:
 ```bash
 cd server
 npm test
@@ -243,3 +295,9 @@ Run frontend production build verification:
 ```bash
 npm run build
 ```
+
+---
+
+## 8. University Submission & Demo Reference
+
+For a step-by-step evaluator demonstration walkthrough with visual highlights and talking points, refer to [`reports/DEV_DEMO_READINESS.md`](reports/DEV_DEMO_READINESS.md).
