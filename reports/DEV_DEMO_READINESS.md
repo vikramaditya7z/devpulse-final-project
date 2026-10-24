@@ -219,6 +219,8 @@ flowchart LR
 ## 8. Release Sign-Off
 
 * **Release Status:** **APPROVED FOR SUBMISSION & RECORDED EVALUATION**
-* **Sign-Off Commit SHA:** `df142ff` (+ bug fix commit)
-* **Automated Tests:** 157 passed, 0 failed
-* **Production Deployment:** Verified Healthy
+* **Final Release Commit SHA:** `3e42b35` (Pushed and verified on `origin/main`)
+* **Preceding QA Commit SHA:** `965597f` (All 4 reported UI defects resolved)
+* **Automated Tests:** 16 test suites passed, 157 passed, 0 failed
+* **Production Deployment (Render):** Active & Live (`assets/index-CDTuXzX1.js`)
+* **Live Headless Chrome Audit:** PASS (0 fatal JS exceptions)
