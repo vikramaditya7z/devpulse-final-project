@@ -290,7 +290,7 @@ export const ReportCompare = () => {
                     <ExternalLink className="w-3 h-3" />
                   </a>
                   <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-slate-800/80 text-slate-400 border border-slate-700/60">
-                    {comparison.snapshots.elapsedDays} Days Elapsed
+                    {comparison.snapshots.elapsedTimeFormatted || `${comparison.snapshots.elapsedDays} Days Elapsed`}
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-1">
@@ -506,10 +506,15 @@ export const ReportCompare = () => {
               <div>
                 <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-amber-400" />
-                  Collaboration Bottlenecks Transition
+                  Collaboration Bottlenecks Transition ({comparison.findingsComparison.laterTotalCount ?? (comparison.findingsComparison.newlyDetectedCount + comparison.findingsComparison.persistingCount)} Snapshot Findings)
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
                   Classified by stable finding IDs to distinguish new issues, resolved bottlenecks, and persisting items.
+                  {comparison.findingsComparison.laterCriticalCount !== undefined && (
+                    <span className="block mt-0.5 text-slate-500 font-mono text-[11px]">
+                      Later snapshot composition: {comparison.findingsComparison.laterCriticalCount} critical · {comparison.findingsComparison.laterWarningCount} warning findings.
+                    </span>
+                  )}
                 </p>
               </div>
 
@@ -571,7 +576,7 @@ export const ReportCompare = () => {
                               NEW · {f.severity}
                             </span>
                             <span className="font-bold text-slate-200 text-sm">
-                              #{f.itemNumber}: {f.title}
+                              {f.itemNumber ? `#${f.itemNumber}: ` : ''}{f.title || f.explanation || 'Identified Bottleneck'}
                             </span>
                           </div>
                           <p className="text-xs text-slate-400 mb-2">{f.explanation}</p>
@@ -620,7 +625,7 @@ export const ReportCompare = () => {
                               RESOLVED
                             </span>
                             <span className="font-bold text-slate-200 text-sm">
-                              #{f.itemNumber}: {f.title}
+                              {f.itemNumber ? `#${f.itemNumber}: ` : ''}{f.title || f.explanation || 'Identified Bottleneck'}
                             </span>
                           </div>
                           <p className="text-xs text-slate-400">
@@ -681,12 +686,18 @@ export const ReportCompare = () => {
                             )}
 
                             <span className="font-bold text-slate-200 text-sm">
-                              #{f.itemNumber}: {f.title}
+                              {f.itemNumber ? `#${f.itemNumber}: ` : ''}{f.title || f.explanation || 'Identified Bottleneck'}
                             </span>
                           </div>
 
                           <p className="text-xs text-slate-400 mb-2">
-                            {f.explanation} (Inactive duration grew by +{f.daysInactiveDelta} days).
+                            {f.explanation} (
+                            {f.daysInactiveDelta > 0
+                              ? `Inactive duration grew by +${f.daysInactiveDelta} days`
+                              : f.daysInactiveDelta < 0
+                              ? `Inactive duration decreased by ${Math.abs(f.daysInactiveDelta)} days`
+                              : `Inactive duration unchanged at ${f.daysInactive || 0} days`}
+                            ).
                           </p>
 
                           {f.ruleBasedAction && (

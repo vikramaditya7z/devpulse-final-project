@@ -506,7 +506,7 @@ export const WorkspaceDetail = () => {
                 {overview?.stats?.totalCriticalBottlenecks ?? 0}
               </div>
               <div className="text-xs text-slate-400 mt-1">
-                Requiring priority team review
+                Across all shared repositories
               </div>
             </div>
           </div>
@@ -520,12 +520,12 @@ export const WorkspaceDetail = () => {
                   Team Priorities — What Should Our Team Investigate First?
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Deterministic bottlenecks aggregated across all workspace shared repositories, prioritized by critical severity and days inactive.
+                  Showing top {overview?.teamPriorities?.length || 0} actionable items (of {overview?.stats?.totalCriticalBottlenecks || 0} critical bottlenecks across shared repositories), prioritized by severity and inactivity.
                 </p>
               </div>
 
               <span className="text-[11px] font-mono uppercase px-2.5 py-1 rounded bg-[#0c101a] text-slate-300 border border-slate-700/60 self-start sm:self-auto">
-                {overview?.teamPriorities?.length || 0} Priority Items
+                Top {overview?.teamPriorities?.length || 0} Priorities
               </span>
             </div>
 
@@ -562,7 +562,7 @@ export const WorkspaceDetail = () => {
                         </span>
 
                         <span className="font-bold text-slate-100 text-sm">
-                          #{item.itemNumber}: {item.title}
+                          {item.itemNumber ? `#${item.itemNumber}: ` : ''}{item.title || item.explanation || 'Identified Bottleneck'}
                         </span>
                       </div>
 
@@ -594,7 +594,7 @@ export const WorkspaceDetail = () => {
                         to={`/reports/${item.reportId}`}
                         className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-medium bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 px-2.5 py-1.5 rounded-lg transition"
                       >
-                        <span>Snapshot</span>
+                        <span>Snapshot Report</span>
                         <ArrowRight className="w-3 h-3" />
                       </Link>
                     </div>

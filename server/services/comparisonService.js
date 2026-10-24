@@ -64,6 +64,55 @@ const DIMENSION_KEYS = [
 ];
 
 /**
+ * Safely unwrap and normalize finding objects, handling Mongoose subdocuments
+ * or plain JSON objects, ensuring essential fields like itemNumber, title, and url
+ * are cleanly accessible and never undefined.
+ */
+const normalizeFinding = (finding, repoFullName = '') => {
+  if (!finding) return {};
+  const obj = typeof finding.toObject === 'function' ? finding.toObject() : (finding._doc || finding);
+  const type = obj.type || 'stale_issue';
+
+  let itemNumber = null;
+  if (typeof obj.itemNumber === 'number' && !isNaN(obj.itemNumber)) {
+    itemNumber = obj.itemNumber;
+  } else if (obj.itemNumber !== undefined && obj.itemNumber !== null && !isNaN(parseInt(obj.itemNumber, 10))) {
+    itemNumber = parseInt(obj.itemNumber, 10);
+  }
+
+  // Guaranteed readable title
+  let title = (obj.title && typeof obj.title === 'string' && obj.title.trim()) ? obj.title.trim() : '';
+  if (!title) {
+    if (itemNumber) {
+      title = `${type.replace(/_/g, ' ')} #${itemNumber}`;
+    } else {
+      title = obj.explanation || 'Identified Collaboration Bottleneck';
+    }
+  }
+
+  // Construct fallback URL if missing
+  let url = obj.url || '';
+  if (!url && repoFullName && itemNumber) {
+    const section = type === 'stale_issue' ? 'issues' : 'pull';
+    url = `https://github.com/${repoFullName}/${section}/${itemNumber}`;
+  }
+
+  return {
+    id: obj.id || (obj._id ? obj._id.toString() : ''),
+    type,
+    severity: obj.severity || 'warning',
+    itemNumber,
+    title,
+    url,
+    thresholdDays: obj.thresholdDays,
+    relevantDates: obj.relevantDates,
+    daysInactive: typeof obj.daysInactive === 'number' ? obj.daysInactive : 0,
+    explanation: obj.explanation || '',
+    ruleBasedAction: obj.ruleBasedAction || ''
+  };
+};
+
+/**
  * Derives a stable identifier for a finding.
  */
 const getFindingKey = (finding) => {
@@ -71,7 +120,9 @@ const getFindingKey = (finding) => {
     return finding.id.trim();
   }
   const type = finding.type || 'finding';
-  const item = finding.itemNumber !== undefined && finding.itemNumber !== null ? finding.itemNumber : (finding.title || '');
+  const item = finding.itemNumber !== undefined && finding.itemNumber !== null && finding.itemNumber !== ''
+    ? finding.itemNumber
+    : (finding.title || '');
   return `${type}-${item}`.toLowerCase();
 };
 
@@ -137,7 +188,19 @@ const compareReports = (reportA, reportB) => {
 
   const earlierTime = new Date(earlier.generatedAt || earlier.createdAt || Date.now());
   const laterTime = new Date(later.generatedAt || later.createdAt || Date.now());
-  const elapsedDays = Math.max(0, Math.round((laterTime.getTime() - earlierTime.getTime()) / MS_PER_DAY));
+  const elapsedMs = Math.max(0, laterTime.getTime() - earlierTime.getTime());
+  const elapsedDays = Math.round(elapsedMs / MS_PER_DAY);
+  const elapsedHours = Math.round(elapsedMs / (1000 * 60 * 60));
+  const elapsedMinutes = Math.round(elapsedMs / (1000 * 60));
+
+  let elapsedTimeFormatted = `${elapsedDays} Days Elapsed`;
+  if (elapsedDays === 0) {
+    if (elapsedHours >= 1) {
+      elapsedTimeFormatted = `${elapsedHours} ${elapsedHours === 1 ? 'Hour' : 'Hours'} Elapsed`;
+    } else {
+      elapsedTimeFormatted = `${Math.max(1, elapsedMinutes)} ${elapsedMinutes <= 1 ? 'Min' : 'Mins'} Elapsed`;
+    }
+  }
 
   // 1. Overall Health Comparison
   const earlierScore = earlier.metrics?.healthScore ?? 0;
@@ -237,8 +300,12 @@ const compareReports = (reportA, reportB) => {
   });
 
   // 4. Bottleneck Findings Transition Analysis
-  const earlierFindings = Array.isArray(earlier.findings) ? earlier.findings : [];
-  const laterFindings = Array.isArray(later.findings) ? later.findings : [];
+  const earlierFindingsRaw = Array.isArray(earlier.findings) ? earlier.findings : [];
+  const laterFindingsRaw = Array.isArray(later.findings) ? later.findings : [];
+  const repoFullName = earlier.repository?.fullName || repoA;
+
+  const earlierFindings = earlierFindingsRaw.map((f) => normalizeFinding(f, repoFullName));
+  const laterFindings = laterFindingsRaw.map((f) => normalizeFinding(f, repoFullName));
 
   const earlierMap = new Map();
   earlierFindings.forEach((f) => {
@@ -386,6 +453,13 @@ const compareReports = (reportA, reportB) => {
     summaryStatements.push(`Bottlenecks transition: ${transitionParts.join(', ')}.`);
   }
 
+  // Activity unchanged notice when metrics and findings show no movement
+  if (scoreDelta === 0 && newlyDetected.length === 0 && noLongerDetected.length === 0) {
+    summaryStatements.push(
+      `No repository activity or metric variance detected between snapshots (${elapsedTimeFormatted}). Both snapshots capture identical states.`
+    );
+  }
+
   // Model compatibility notice
   let compatibilityNote = null;
   if (!scoringModelsCompatible) {
@@ -421,7 +495,10 @@ const compareReports = (reportA, reportB) => {
         healthScore: laterScore,
         healthStatus: laterStatus
       },
-      elapsedDays
+      elapsedDays,
+      elapsedHours,
+      elapsedMinutes,
+      elapsedTimeFormatted
     },
     healthScoreComparison: {
       earlierScore,
@@ -443,7 +520,11 @@ const compareReports = (reportA, reportB) => {
       noLongerDetectedCount: noLongerDetected.length,
       persisting,
       persistingCount: persisting.length,
-      persistingCriticalCount: persisting.filter((p) => p.currentSeverity === 'critical').length
+      persistingCriticalCount: persisting.filter((p) => p.currentSeverity === 'critical').length,
+      earlierTotalCount: earlierFindings.length,
+      laterTotalCount: laterFindings.length,
+      laterCriticalCount: laterFindings.filter((f) => f.severity === 'critical').length,
+      laterWarningCount: laterFindings.filter((f) => f.severity === 'warning').length
     },
     summaryStatements
   };
@@ -453,6 +534,7 @@ module.exports = {
   compareReports,
   calculatePercentChange,
   getFindingKey,
+  normalizeFinding,
   METRIC_SPECS,
   DIMENSION_KEYS
 };

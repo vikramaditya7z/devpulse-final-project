@@ -4,6 +4,7 @@ const WorkspaceMember = require('../models/WorkspaceMember');
 const WorkspaceInvitation = require('../models/WorkspaceInvitation');
 const SavedRepository = require('../models/SavedRepository');
 const HealthReport = require('../models/HealthReport');
+const { normalizeFinding } = require('../services/comparisonService');
 
 /**
  * Create a new workspace
@@ -373,19 +374,21 @@ const getWorkspaceOverview = async (req, res, next) => {
             if (f.severity === 'critical') totalCritical++;
             else if (f.severity === 'warning') totalWarning++;
 
+            const norm = normalizeFinding(f, repo.fullName);
+
             aggregatedPriorities.push({
-              findingKey: `${repo.fullName}-${f.id || f.itemNumber || f.title}`,
+              findingKey: `${repo.fullName}-${norm.id || norm.itemNumber || norm.title}`,
               repoId: repo._id,
               repoFullName: repo.fullName,
-              id: f.id,
-              type: f.type,
-              severity: f.severity,
-              itemNumber: f.itemNumber,
-              title: f.title,
-              url: f.url,
-              daysInactive: f.daysInactive || 0,
-              explanation: f.explanation,
-              ruleBasedAction: f.ruleBasedAction,
+              id: norm.id,
+              type: norm.type,
+              severity: norm.severity,
+              itemNumber: norm.itemNumber,
+              title: norm.title,
+              url: norm.url,
+              daysInactive: norm.daysInactive || 0,
+              explanation: norm.explanation,
+              ruleBasedAction: norm.ruleBasedAction,
               reportId: latestReport._id,
               reportDate: latestReport.generatedAt
             });

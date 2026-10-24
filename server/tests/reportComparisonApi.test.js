@@ -258,7 +258,13 @@ describe('Snapshot Comparison API & Immutability Integration Tests', () => {
       expect(cmp.dimensionsComparison.prVelocity.delta).toBe(20);
       expect(cmp.metricsComparison.openIssuesCount.delta).toBe(-8);
       expect(cmp.findingsComparison.newlyDetectedCount).toBe(1);
+      expect(cmp.findingsComparison.newlyDetected[0].itemNumber).toBe(2);
+      expect(cmp.findingsComparison.newlyDetected[0].title).toBe('Docs typo');
       expect(cmp.findingsComparison.noLongerDetectedCount).toBe(1);
+      expect(cmp.findingsComparison.noLongerDetected[0].itemNumber).toBe(1);
+      expect(cmp.findingsComparison.noLongerDetected[0].title).toBe('Memory leak in render');
+      expect(cmp.findingsComparison.laterTotalCount).toBe(1);
+      expect(cmp.snapshots.elapsedTimeFormatted).toBeDefined();
       expect(cmp.summaryStatements.length).toBeGreaterThan(0);
     });
 

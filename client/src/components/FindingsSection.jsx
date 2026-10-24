@@ -220,7 +220,7 @@ export const FindingsSection = ({ findings = [] }) => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <span className="font-semibold text-white text-sm truncate">
-                    #{finding.itemNumber}: {finding.title}
+                    {finding.itemNumber ? `#${finding.itemNumber}: ` : ''}{finding.title || finding.explanation || 'Identified Bottleneck'}
                   </span>
                   {getSeverityBadge(finding.severity)}
                   <span className="text-xs text-slate-400 font-mono">

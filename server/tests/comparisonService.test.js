@@ -360,5 +360,103 @@ describe('Deterministic Snapshot Comparison Service', () => {
       expect(result.summaryStatements.some((s) => s.includes('Backlog issues reduced by 8'))).toBe(true);
       expect(result.summaryStatements.some((s) => s.includes('Average PR turnaround velocity accelerated'))).toBe(true);
     });
+
+    it('explains unchanged metrics when snapshots are captured 2 hours apart with zero variance', () => {
+      const older = createReport({
+        _id: 'rep_older_2h',
+        generatedAt: new Date('2026-10-24T08:00:00Z')
+      });
+      const newer = createReport({
+        _id: 'rep_newer_2h',
+        generatedAt: new Date('2026-10-24T10:00:00Z')
+      });
+
+      const result = compareReports(older, newer);
+      expect(result.snapshots.elapsedHours).toBe(2);
+      expect(result.snapshots.elapsedTimeFormatted).toBe('2 Hours Elapsed');
+      expect(result.healthScoreComparison.scoreDelta).toBe(0);
+      expect(result.summaryStatements.some((s) => s.includes('No repository activity or metric variance detected between snapshots (2 Hours Elapsed)'))).toBe(true);
+    });
+  });
+
+  describe('Mongoose Subdocument & Finding Normalization', () => {
+    it('correctly unwraps Mongoose subdocuments so itemNumber, title, and url are never lost', () => {
+      // Simulate Mongoose subdocument objects that have _doc and internal properties
+      const mockMongooseFinding = {
+        $__: {},
+        _doc: {
+          id: 'stale_issue-999',
+          type: 'stale_issue',
+          severity: 'critical',
+          itemNumber: 999,
+          title: 'Critical DB Connection Timeout',
+          daysInactive: 30,
+          explanation: 'No activity in 30 days',
+          ruleBasedAction: 'Investigate or close issue'
+        },
+        toObject() {
+          return { ...this._doc };
+        }
+      };
+
+      const older = createReport({
+        _id: 'rep_doc_1',
+        findings: [mockMongooseFinding]
+      });
+
+      const newer = createReport({
+        _id: 'rep_doc_2',
+        findings: [{
+          ...mockMongooseFinding,
+          _doc: {
+            ...mockMongooseFinding._doc,
+            daysInactive: 32
+          }
+        }]
+      });
+
+      const result = compareReports(older, newer);
+      expect(result.findingsComparison.persistingCount).toBe(1);
+      const persistingItem = result.findingsComparison.persisting[0];
+
+      // Must be top-level properties, not buried in _doc
+      expect(persistingItem.itemNumber).toBe(999);
+      expect(persistingItem.title).toBe('Critical DB Connection Timeout');
+      expect(persistingItem.severity).toBe('critical');
+      expect(persistingItem.daysInactive).toBe(32);
+      expect(persistingItem.daysInactiveDelta).toBe(2);
+      // Valid GitHub URL generated if missing
+      expect(persistingItem.url).toBe('https://github.com/facebook/react/issues/999');
+    });
+
+    it('falls back gracefully when title or itemNumber is missing on older finding records', () => {
+      const older = createReport({
+        _id: 'rep_legacy_1',
+        findings: [{
+          type: 'old_open_pr',
+          severity: 'warning',
+          itemNumber: null,
+          explanation: 'Overdue open pull request awaiting review'
+        }]
+      });
+
+      const newer = createReport({
+        _id: 'rep_legacy_2',
+        findings: [{
+          type: 'old_open_pr',
+          severity: 'critical',
+          itemNumber: null,
+          explanation: 'Overdue open pull request awaiting review',
+          daysInactive: 25
+        }]
+      });
+
+      const result = compareReports(older, newer);
+      expect(result.findingsComparison.persistingCount).toBe(1);
+      const item = result.findingsComparison.persisting[0];
+      expect(item.itemNumber).toBeNull();
+      expect(item.title).toBe('Overdue open pull request awaiting review');
+      expect(item.severityUpgraded).toBe(true);
+    });
   });
 });
