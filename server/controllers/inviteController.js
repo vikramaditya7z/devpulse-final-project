@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const WorkspaceInvitation = require('../models/WorkspaceInvitation');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const { generateSecureToken, hashToken, INVITATION_EXPIRY_MS } = require('../utils/crypto');
+const { buildInviteUrl } = require('../utils/urlHelper');
 
 /**
  * Generate a single-use 48h invitation link
@@ -22,8 +23,7 @@ const createInvitation = async (req, res, next) => {
       status: 'pending'
     });
 
-    const clientOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
-    const inviteUrl = `${clientOrigin}/invite/${rawToken}`;
+    const inviteUrl = buildInviteUrl(rawToken, req);
 
     return res.status(201).json({
       success: true,

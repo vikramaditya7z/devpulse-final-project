@@ -2,29 +2,29 @@ import React from 'react';
 
 export const MetricCard = ({ title, value, subtitle, icon: Icon, color = 'emerald' }) => {
   const colorStyles = {
-    emerald: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-    blue: 'text-blue-700 bg-blue-50 border-blue-200',
-    amber: 'text-amber-700 bg-amber-50 border-amber-200',
-    purple: 'text-purple-700 bg-purple-50 border-purple-200',
-    rose: 'text-rose-700 bg-rose-50 border-rose-200'
+    emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25',
+    blue: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/25',
+    amber: 'text-amber-400 bg-amber-500/10 border-amber-500/25',
+    purple: 'text-violet-400 bg-violet-500/10 border-violet-500/25',
+    rose: 'text-rose-400 bg-rose-500/10 border-rose-500/25'
   };
 
   const badgeClass = colorStyles[color] || colorStyles.emerald;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition flex flex-col justify-between">
+    <div className="bg-[#101625]/90 border border-slate-800/80 rounded-xl p-5 shadow-md shadow-black/20 hover:border-slate-700/90 hover:bg-[#131b2e] transition flex flex-col justify-between group">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{title}</span>
         {Icon && (
-          <div className={`w-8 h-8 rounded-lg border flex items-center justify-center ${badgeClass}`}>
+          <div className={`w-8 h-8 rounded-lg border flex items-center justify-center ${badgeClass} transition group-hover:scale-105`}>
             <Icon className="w-4 h-4" />
           </div>
         )}
       </div>
 
       <div>
-        <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">{value}</div>
-        {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
+        <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-mono">{value}</div>
+        {subtitle && <p className="text-xs text-slate-400 mt-1 leading-relaxed">{subtitle}</p>}
       </div>
     </div>
   );
@@ -32,14 +32,14 @@ export const MetricCard = ({ title, value, subtitle, icon: Icon, color = 'emeral
 
 export const MetricCardSkeleton = () => {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs animate-pulse flex flex-col justify-between h-32">
+    <div className="bg-[#101625]/90 border border-slate-800/80 rounded-xl p-5 shadow-md animate-pulse flex flex-col justify-between h-32">
       <div className="flex items-center justify-between mb-3">
-        <div className="h-3 w-20 bg-slate-200 rounded"></div>
-        <div className="w-8 h-8 rounded-lg bg-slate-200"></div>
+        <div className="h-3 w-20 bg-slate-800 rounded"></div>
+        <div className="w-8 h-8 rounded-lg bg-slate-800"></div>
       </div>
       <div>
-        <div className="h-7 w-16 bg-slate-200 rounded mb-2"></div>
-        <div className="h-3 w-28 bg-slate-100 rounded"></div>
+        <div className="h-7 w-16 bg-slate-800 rounded mb-2"></div>
+        <div className="h-3 w-28 bg-slate-800/60 rounded"></div>
       </div>
     </div>
   );

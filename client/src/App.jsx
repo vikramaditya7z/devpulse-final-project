@@ -22,7 +22,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white">
+        <div className="min-h-screen flex flex-col bg-[#0a0d14] text-slate-100 selection:bg-emerald-500 selection:text-white relative">
           <Navbar />
           <main className="flex-1">
             <Routes>
@@ -52,8 +52,8 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
-          <footer className="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
-            DevPulse &copy; 2026 — GitHub Project Health & Collaboration Platform
+          <footer className="border-t border-slate-800/80 bg-[#07090e] py-6 text-center text-xs text-slate-500">
+            DevPulse &copy; 2026 — GitHub Project Health & Collaboration Platform · Autonomous Deterministic Analytics
           </footer>
         </div>
       </AuthProvider>
