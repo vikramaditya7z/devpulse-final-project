@@ -118,6 +118,11 @@ export const workspaceApi = {
       method: 'GET'
     }),
 
+  getWorkspaceOverview: (id) =>
+    request(`/workspaces/${id}/overview`, {
+      method: 'GET'
+    }),
+
   renameWorkspace: (id, payload) =>
     request(`/workspaces/${id}`, {
       method: 'PATCH',
@@ -242,5 +247,20 @@ export const reportApi = {
   getReportById: (id) =>
     request(`/reports/${id}`, {
       method: 'GET'
-    })
+    }),
+
+  compareReports: (baseReportId, targetReportId) =>
+    request(`/reports/compare?baseReportId=${baseReportId}&targetReportId=${targetReportId}`, {
+      method: 'GET'
+    }),
+
+  getRepositorySnapshots: (fullName, workspaceId = null) => {
+    let url = `/reports/repository-snapshots?fullName=${encodeURIComponent(fullName)}`;
+    if (workspaceId) {
+      url += `&workspaceId=${encodeURIComponent(workspaceId)}`;
+    }
+    return request(url, {
+      method: 'GET'
+    });
+  }
 };

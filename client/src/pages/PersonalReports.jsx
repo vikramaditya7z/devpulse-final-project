@@ -7,7 +7,8 @@ import {
   ArrowRight,
   Trash2,
   AlertCircle,
-  FolderGit2
+  FolderGit2,
+  GitCompare
 } from 'lucide-react';
 
 export const PersonalReports = () => {
@@ -65,13 +66,23 @@ export const PersonalReports = () => {
           </p>
         </div>
 
-        <Link
-          to="/dashboard"
-          className="inline-flex items-center gap-2 text-xs font-semibold bg-[#101625] hover:bg-slate-800 text-slate-300 border border-slate-700/80 px-4 py-2.5 rounded-xl transition"
-        >
-          <FolderGit2 className="w-4 h-4 text-emerald-400" />
-          <span>Personal Dashboard</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/reports/compare"
+            className="inline-flex items-center gap-2 text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-4 py-2.5 rounded-xl transition shadow-lg shadow-cyan-950/40"
+          >
+            <GitCompare className="w-4 h-4 text-cyan-400" />
+            <span>Compare Snapshots</span>
+          </Link>
+
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-2 text-xs font-semibold bg-[#101625] hover:bg-slate-800 text-slate-300 border border-slate-700/80 px-4 py-2.5 rounded-xl transition"
+          >
+            <FolderGit2 className="w-4 h-4 text-emerald-400" />
+            <span>Personal Dashboard</span>
+          </Link>
+        </div>
       </div>
 
       {error && (
@@ -154,6 +165,15 @@ export const PersonalReports = () => {
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <Link
+                            to={`/reports/compare?repo=${encodeURIComponent(rep.repository?.fullName || '')}`}
+                            className="inline-flex items-center gap-1 text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2.5 py-1.5 rounded-lg transition"
+                            title="Compare snapshots of this repository"
+                          >
+                            <GitCompare className="w-3 h-3" />
+                            <span className="hidden sm:inline">Compare</span>
+                          </Link>
+
                           <Link
                             to={`/reports/${rep._id}`}
                             className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg transition"

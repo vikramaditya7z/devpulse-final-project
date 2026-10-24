@@ -15,6 +15,7 @@ import { WorkspaceDetail } from './pages/WorkspaceDetail';
 import { WorkspaceRepoHealth } from './pages/WorkspaceRepoHealth';
 import { PersonalReports } from './pages/PersonalReports';
 import { ReportDetail } from './pages/ReportDetail';
+import { ReportCompare } from './pages/ReportCompare';
 import { InviteAccept } from './pages/InviteAccept';
 import { NotFound } from './pages/NotFound';
 
@@ -45,6 +46,7 @@ export default function App() {
                 <Route path="/workspaces/:id" element={<WorkspaceDetail />} />
                 <Route path="/workspaces/:id/repos/:repoId/health" element={<WorkspaceRepoHealth />} />
                 <Route path="/reports" element={<PersonalReports />} />
+                <Route path="/reports/compare" element={<ReportCompare />} />
                 <Route path="/reports/:id" element={<ReportDetail />} />
               </Route>
 

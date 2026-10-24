@@ -23,9 +23,9 @@ Built for a university end-term software engineering capstone project (Due: Octo
 DevPulse/
 ├── client/                     # Frontend React + Vite SPA
 │   ├── src/
-│   │   ├── components/         # Reusable UI (Navbar, MetricCard, FindingsSection, ProtectedRoute)
+│   │   ├── components/         # Reusable UI (Navbar, MetricCard, FindingsSection, DimensionalBreakdown, ProtectedRoute)
 │   │   ├── context/            # AuthContext (user session, login, register, logout)
-│   │   ├── pages/              # Landing, Login, Register, Dashboard, RepoHealth, QuickAnalyze, PersonalReports, ReportDetail, Workspaces, WorkspaceDetail, WorkspaceRepoHealth, InviteAccept, NotFound
+│   │   ├── pages/              # Landing, Login, Register, Dashboard, RepoHealth, QuickAnalyze, PersonalReports, ReportDetail, ReportCompare, Workspaces, WorkspaceDetail, WorkspaceRepoHealth, InviteAccept, NotFound
 │   │   ├── services/           # API client with credentials support (authApi, repoApi)
 │   │   ├── App.jsx             # React routing & layout wrapper
 │   │   └── main.jsx            # Entry point
@@ -51,7 +51,8 @@ DevPulse/
 │   │   └── repoRoutes.js       # /api/repos endpoints
 │   ├── services/
 │   │   ├── githubService.js    # Direct GitHub REST API v3 client with in-memory TTL caching
-│   │   └── analysisService.js  # Pure deterministic metrics & bottleneck calculations
+│   │   ├── analysisService.js  # Pure deterministic metrics & 4D bounded bottleneck calculations
+│   │   └── comparisonService.js # Deterministic snapshot diffing, metrics transition, and change summaries
 │   ├── utils/
 │   │   └── jwt.js              # Token signing, verification, and cookie helper
 │   ├── tests/                  # Automated Jest + Supertest suites
@@ -175,6 +176,7 @@ All API responses follow a consistent JSON envelope format:
 | `POST` | `/api/workspaces` | Create workspace; creator automatically assigned Owner role. | Authenticated User |
 | `GET` | `/api/workspaces` | List all workspaces accessible to current user with role badges. | Authenticated User |
 | `GET` | `/api/workspaces/:id` | Get workspace details and member list. | Workspace Member |
+| `GET` | `/api/workspaces/:id/overview` | Get comprehensive workspace pulse, shared repo statuses, and team priorities. | Workspace Member |
 | `PATCH`| `/api/workspaces/:id` | Rename workspace name and description. | Workspace Owner |
 | `DELETE`| `/api/workspaces/:id` | Delete workspace and cascade-delete memberships, invites, repos, and reports. | Workspace Owner |
 | `GET` | `/api/workspaces/:id/members` | List workspace members with roles. | Workspace Member |
@@ -195,11 +197,14 @@ All API responses follow a consistent JSON envelope format:
 
 | Method | Endpoint | Description | Role / Auth |
 | :--- | :--- | :--- | :---: |
+| `GET` | `/api/reports/compare` | Compare two historical report snapshots (score delta, dimensions, metrics, finding transitions). | Authenticated User |
+| `GET` | `/api/reports/repository-snapshots` | Query historical snapshots for a repository (personal or workspace). | Authenticated User |
 | `GET` | `/api/reports/personal` | List personal generated report snapshots. | Authenticated User |
 | `POST` | `/api/reports/personal` | Generate immutable report snapshot for personal saved repo. | Authenticated User |
 | `GET` | `/api/reports/personal/:id` | View personal report snapshot. | Creator Only |
 | `DELETE`| `/api/reports/personal/:id` | Delete personal report snapshot. | Creator Only |
 | `GET` | `/api/reports/:id` | Unified report lookup (verifies personal creator or workspace membership). | Authenticated User |
+| `PUT/PATCH`| `/api/reports/:id` | Strictly rejected (405 Method Not Allowed) to enforce snapshot immutability. | N/A |
 
 ### Invitation Endpoints (`/api/invitations`)
 

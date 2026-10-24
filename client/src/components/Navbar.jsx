@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Activity, LogOut, User as UserIcon, LayoutDashboard, Search, Users, FileText } from 'lucide-react';
+import { Activity, LogOut, User as UserIcon, LayoutDashboard, Search, Users, FileText, GitCompare } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -38,7 +38,7 @@ export const Navbar = () => {
             <span className="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
               DevPulse
               <span className="text-[10px] uppercase font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                v2.0
+                v3.0
               </span>
             </span>
           </div>
@@ -61,6 +61,11 @@ export const Navbar = () => {
               <Link to="/reports" className={navLinkClass('/reports')}>
                 <FileText className="w-4 h-4 text-violet-400" />
                 <span>Reports</span>
+              </Link>
+
+              <Link to="/reports/compare" className={navLinkClass('/reports/compare')}>
+                <GitCompare className="w-4 h-4 text-cyan-400" />
+                <span>Compare</span>
               </Link>
 
               <Link to="/analyze" className={navLinkClass('/analyze')}>

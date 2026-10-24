@@ -15,6 +15,7 @@ router.post('/', workspaceController.createWorkspace);
 router.get('/', workspaceController.getUserWorkspaces);
 
 // Single workspace operations (require active membership)
+router.get('/:id/overview', requireWorkspaceMember, workspaceController.getWorkspaceOverview);
 router.get('/:id', requireWorkspaceMember, workspaceController.getWorkspaceDetails);
 router.get('/:id/members', requireWorkspaceMember, workspaceController.listMembers);
 router.post('/:id/leave', requireWorkspaceMember, workspaceController.leaveWorkspace);
@@ -40,5 +41,7 @@ router.post('/:id/reports', requireWorkspaceMember, reportController.generateWor
 router.get('/:id/reports', requireWorkspaceMember, reportController.getWorkspaceReports);
 router.get('/:id/reports/:reportId', requireWorkspaceMember, reportController.getWorkspaceReportById);
 router.delete('/:id/reports/:reportId', requireWorkspaceMember, requireWorkspaceOwner, reportController.deleteWorkspaceReport);
+router.put('/:id/reports/:reportId', requireWorkspaceMember, reportController.rejectReportMutation);
+router.patch('/:id/reports/:reportId', requireWorkspaceMember, reportController.rejectReportMutation);
 
 module.exports = router;

@@ -312,6 +312,181 @@ const listMembers = async (req, res, next) => {
   }
 };
 
+/**
+ * Comprehensive Workspace Project Overview
+ * GET /api/workspaces/:id/overview
+ * Protected by requireWorkspaceMember
+ */
+const getWorkspaceOverview = async (req, res, next) => {
+  try {
+    const workspaceId = req.workspace._id;
+
+    // 1. Fetch repositories, members, pending invitations, and reports
+    const [savedRepos, members, pendingInvites, totalReportsCount] = await Promise.all([
+      SavedRepository.find({ workspace: workspaceId, scope: 'workspace' })
+        .populate('addedBy', 'name email')
+        .sort({ createdAt: -1 }),
+      WorkspaceMember.find({ workspace: workspaceId })
+        .populate('user', 'name email')
+        .sort({ role: -1, joinedAt: 1 }),
+      WorkspaceInvitation.countDocuments({ workspace: workspaceId, status: 'pending' }),
+      HealthReport.countDocuments({ workspace: workspaceId, scope: 'workspace' })
+    ]);
+
+    // 2. Fetch latest report and total report count per repository
+    let healthyCount = 0;
+    let fairCount = 0;
+    let needsAttentionCount = 0;
+    let unassessedCount = 0;
+    let totalCritical = 0;
+    let totalWarning = 0;
+
+    const aggregatedPriorities = [];
+
+    const repoSummaries = await Promise.all(
+      savedRepos.map(async (repo) => {
+        const [latestReport, repoReportsCount] = await Promise.all([
+          HealthReport.findOne({
+            workspace: workspaceId,
+            scope: 'workspace',
+            'repository.fullName': new RegExp(`^${repo.fullName}$`, 'i')
+          })
+            .populate('createdBy', 'name email')
+            .sort({ generatedAt: -1 }),
+          HealthReport.countDocuments({
+            workspace: workspaceId,
+            scope: 'workspace',
+            'repository.fullName': new RegExp(`^${repo.fullName}$`, 'i')
+          })
+        ]);
+
+        if (latestReport) {
+          const score = latestReport.metrics?.healthScore;
+          if (typeof score === 'number') {
+            if (score >= 75) healthyCount++;
+            else if (score >= 50) fairCount++;
+            else needsAttentionCount++;
+          }
+
+          const findings = Array.isArray(latestReport.findings) ? latestReport.findings : [];
+          findings.forEach((f) => {
+            if (f.severity === 'critical') totalCritical++;
+            else if (f.severity === 'warning') totalWarning++;
+
+            aggregatedPriorities.push({
+              findingKey: `${repo.fullName}-${f.id || f.itemNumber || f.title}`,
+              repoId: repo._id,
+              repoFullName: repo.fullName,
+              id: f.id,
+              type: f.type,
+              severity: f.severity,
+              itemNumber: f.itemNumber,
+              title: f.title,
+              url: f.url,
+              daysInactive: f.daysInactive || 0,
+              explanation: f.explanation,
+              ruleBasedAction: f.ruleBasedAction,
+              reportId: latestReport._id,
+              reportDate: latestReport.generatedAt
+            });
+          });
+        } else {
+          unassessedCount++;
+        }
+
+        return {
+          _id: repo._id,
+          owner: repo.owner,
+          repo: repo.repo,
+          fullName: repo.fullName,
+          url: repo.url,
+          description: repo.description,
+          defaultBranch: repo.defaultBranch,
+          stars: repo.stars,
+          forks: repo.forks,
+          addedBy: repo.addedBy,
+          createdAt: repo.createdAt,
+          reportCount: repoReportsCount,
+          canCompare: repoReportsCount >= 2,
+          latestReport: latestReport
+            ? {
+                _id: latestReport._id,
+                generatedAt: latestReport.generatedAt,
+                createdBy: latestReport.createdBy,
+                healthScore: latestReport.metrics?.healthScore,
+                healthStatus: latestReport.metrics?.healthStatus,
+                scoringModelVersion: latestReport.metrics?.scoringModelVersion || 'v1',
+                openIssuesCount: latestReport.metrics?.openIssuesCount,
+                openPullRequestsCount: latestReport.metrics?.openPullRequestsCount,
+                mergedPullRequestsCount: latestReport.metrics?.mergedPullRequestsCount,
+                averagePRMergeTimeHours: latestReport.metrics?.averagePRMergeTimeHours,
+                recentCommitsCount: latestReport.metrics?.recentCommitsCount,
+                criticalFindingsCount: latestReport.metrics?.criticalFindingsCount,
+                totalFindingsCount: latestReport.findings?.length || 0,
+                dimensions: latestReport.metrics?.dimensions || null
+              }
+            : null
+        };
+      })
+    );
+
+    // 3. Sort priorities deterministically: critical first, then highest daysInactive
+    aggregatedPriorities.sort((a, b) => {
+      if (a.severity === 'critical' && b.severity !== 'critical') return -1;
+      if (a.severity !== 'critical' && b.severity === 'critical') return 1;
+      return (b.daysInactive || 0) - (a.daysInactive || 0);
+    });
+
+    // Take top 10 unique priorities
+    const seenKeys = new Set();
+    const teamPriorities = [];
+    for (const item of aggregatedPriorities) {
+      if (!seenKeys.has(item.findingKey)) {
+        seenKeys.add(item.findingKey);
+        teamPriorities.push(item);
+        if (teamPriorities.length >= 10) break;
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        workspace: {
+          _id: req.workspace._id,
+          name: req.workspace.name,
+          description: req.workspace.description,
+          owner: req.workspace.owner,
+          role: req.membership.role,
+          createdAt: req.workspace.createdAt
+        },
+        members: members.map((m) => ({
+          _id: m._id,
+          user: m.user,
+          role: m.role,
+          joinedAt: m.joinedAt
+        })),
+        pendingInviteCount: pendingInvites,
+        stats: {
+          totalRepositories: savedRepos.length,
+          totalReports: totalReportsCount,
+          memberCount: members.length,
+          pendingInviteCount: pendingInvites,
+          healthyReposCount: healthyCount,
+          fairReposCount: fairCount,
+          needsAttentionReposCount: needsAttentionCount,
+          unassessedReposCount: unassessedCount,
+          totalCriticalBottlenecks: totalCritical,
+          totalWarningBottlenecks: totalWarning
+        },
+        repositories: repoSummaries,
+        teamPriorities
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   createWorkspace,
   getUserWorkspaces,
@@ -320,5 +495,6 @@ module.exports = {
   deleteWorkspace,
   removeMember,
   leaveWorkspace,
-  listMembers
+  listMembers,
+  getWorkspaceOverview
 };

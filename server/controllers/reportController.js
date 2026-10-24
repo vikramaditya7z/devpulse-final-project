@@ -4,6 +4,7 @@ const SavedRepository = require('../models/SavedRepository');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const githubService = require('../services/githubService');
 const analysisService = require('../services/analysisService');
+const comparisonService = require('../services/comparisonService');
 
 /**
  * Generate a persistent personal health report for a repository saved by current user
@@ -479,6 +480,210 @@ const getReportById = async (req, res, next) => {
   }
 };
 
+/**
+ * Helper to check user authorization on a report
+ */
+const userCanAccessReport = async (report, userId) => {
+  if (report.scope === 'personal') {
+    return report.user && report.user.toString() === userId.toString();
+  }
+  if (report.scope === 'workspace') {
+    const wsId = report.workspace?._id || report.workspace;
+    if (!wsId) return false;
+    const member = await WorkspaceMember.findOne({ workspace: wsId, user: userId });
+    return Boolean(member);
+  }
+  return false;
+};
+
+/**
+ * Compare two historical health reports
+ * GET or POST /api/reports/compare?baseReportId=...&targetReportId=...
+ * Protected by requireAuth
+ */
+const compareReportsEndpoint = async (req, res, next) => {
+  try {
+    const baseReportId = req.query.baseReportId || req.body?.baseReportId;
+    const targetReportId = req.query.targetReportId || req.body?.targetReportId;
+
+    if (!baseReportId || !targetReportId) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_REPORT_IDS',
+          message: 'Both baseReportId and targetReportId are required for snapshot comparison.'
+        }
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(baseReportId) || !mongoose.Types.ObjectId.isValid(targetReportId)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_REPORT_ID',
+          message: 'Report identifiers must be valid MongoDB ObjectIds.'
+        }
+      });
+    }
+
+    if (baseReportId === targetReportId) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'IDENTICAL_REPORTS',
+          message: 'Cannot compare a report snapshot with itself. Please select two distinct snapshots.'
+        }
+      });
+    }
+
+    const [baseReport, targetReport] = await Promise.all([
+      HealthReport.findById(baseReportId).populate('createdBy', 'name email').populate('workspace', 'name'),
+      HealthReport.findById(targetReportId).populate('createdBy', 'name email').populate('workspace', 'name')
+    ]);
+
+    if (!baseReport) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'BASE_REPORT_NOT_FOUND',
+          message: `Base report snapshot (${baseReportId}) not found.`
+        }
+      });
+    }
+
+    if (!targetReport) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'TARGET_REPORT_NOT_FOUND',
+          message: `Target report snapshot (${targetReportId}) not found.`
+        }
+      });
+    }
+
+    // Authorization checks
+    const [canAccessBase, canAccessTarget] = await Promise.all([
+      userCanAccessReport(baseReport, req.user.id),
+      userCanAccessReport(targetReport, req.user.id)
+    ]);
+
+    if (!canAccessBase || !canAccessTarget) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'You do not have authorization to access one or both of the selected report snapshots.'
+        }
+      });
+    }
+
+    try {
+      const comparison = comparisonService.compareReports(baseReport, targetReport);
+      return res.status(200).json({
+        success: true,
+        data: {
+          comparison
+        }
+      });
+    } catch (cmpErr) {
+      return res.status(cmpErr.statusCode || 400).json({
+        success: false,
+        error: {
+          code: cmpErr.code || 'COMPARISON_FAILED',
+          message: cmpErr.message
+        }
+      });
+    }
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * List available snapshots for a specific repository (personal or workspace)
+ * GET /api/reports/repository-snapshots
+ * Protected by requireAuth
+ */
+const getRepositorySnapshots = async (req, res, next) => {
+  try {
+    const { fullName, workspaceId } = req.query;
+
+    if (!fullName || !fullName.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_REPOSITORY',
+          message: 'Repository fullName query parameter is required (e.g. facebook/react).'
+        }
+      });
+    }
+
+    const query = {
+      'repository.fullName': new RegExp(`^${fullName.trim()}$`, 'i')
+    };
+
+    if (workspaceId) {
+      if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_WORKSPACE_ID',
+            message: 'Invalid workspace identifier format.'
+          }
+        });
+      }
+
+      const membership = await WorkspaceMember.findOne({
+        workspace: workspaceId,
+        user: req.user.id
+      });
+
+      if (!membership) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'NOT_A_WORKSPACE_MEMBER',
+            message: 'You are not an authorized member of this workspace.'
+          }
+        });
+      }
+
+      query.workspace = workspaceId;
+      query.scope = 'workspace';
+    } else {
+      query.user = req.user.id;
+      query.scope = 'personal';
+    }
+
+    const snapshots = await HealthReport.find(query)
+      .select('repository scope workspace createdBy metrics.healthScore metrics.healthStatus metrics.scoringModelVersion findings generatedAt reportingPeriodDays')
+      .populate('createdBy', 'name email')
+      .sort({ generatedAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        snapshots
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * Reject any attempt to modify or mutate an immutable report
+ */
+const rejectReportMutation = (req, res) => {
+  return res.status(405).json({
+    success: false,
+    error: {
+      code: 'REPORT_IMMUTABLE',
+      message: 'DevPulse health report snapshots are immutable historical records. Modification requests (PUT/PATCH) are strictly rejected.'
+    }
+  });
+};
+
 module.exports = {
   generatePersonalReport,
   getPersonalReports,
@@ -488,5 +693,8 @@ module.exports = {
   getWorkspaceReports,
   getWorkspaceReportById,
   deleteWorkspaceReport,
-  getReportById
+  getReportById,
+  compareReportsEndpoint,
+  getRepositorySnapshots,
+  rejectReportMutation
 };

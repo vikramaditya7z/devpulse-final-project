@@ -41,6 +41,8 @@ const healthReportSchema = new mongoose.Schema(
     metrics: {
       healthScore: { type: Number, required: true },
       healthStatus: { type: String, required: true },
+      scoringModelVersion: { type: String, default: 'v2' },
+      insufficientData: { type: Boolean, default: false },
       openIssuesCount: { type: Number, required: true },
       openPullRequestsCount: { type: Number, required: true },
       mergedPullRequestsCount: { type: Number, required: true },
@@ -48,19 +50,23 @@ const healthReportSchema = new mongoose.Schema(
       recentCommitsCount: { type: Number, required: true },
       totalFindingsCount: { type: Number, default: 0 },
       criticalFindingsCount: { type: Number, default: 0 },
-      warningFindingsCount: { type: Number, default: 0 }
+      warningFindingsCount: { type: Number, default: 0 },
+      dimensions: { type: mongoose.Schema.Types.Mixed, default: null }
     },
     // Immutable Explainable Bottlenecks Snapshot
     findings: [
       {
+        id: { type: String },
         type: { type: String, required: true },
         severity: { type: String, required: true },
         itemNumber: { type: Number },
         title: { type: String, required: true },
         url: { type: String },
+        thresholdDays: { type: Number },
         relevantDates: { type: mongoose.Schema.Types.Mixed },
         daysInactive: { type: Number },
-        explanation: { type: String, required: true }
+        explanation: { type: String, required: true },
+        ruleBasedAction: { type: String }
       }
     ],
     reportingPeriodDays: {
@@ -92,6 +98,7 @@ const healthReportSchema = new mongoose.Schema(
 // Indexes for fast querying
 healthReportSchema.index({ user: 1, generatedAt: -1 });
 healthReportSchema.index({ workspace: 1, generatedAt: -1 });
+healthReportSchema.index({ 'repository.fullName': 1, generatedAt: -1 });
 
 const HealthReport = mongoose.model('HealthReport', healthReportSchema);
 

@@ -336,6 +336,7 @@ const analyzeRepository = (rawData, referenceDate = new Date()) => {
     metrics: {
       healthScore,
       healthStatus,
+      scoringModelVersion: 'v2',
       insufficientData,
       openIssuesCount: issues.length,
       openPullRequestsCount: openPullRequests.length,

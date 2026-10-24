@@ -26,7 +26,12 @@ import {
   GitBranch,
   Activity,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  GitCompare,
+  Sparkles,
+  Layers,
+  Gauge,
+  TrendingUp
 } from 'lucide-react';
 
 export const WorkspaceDetail = () => {
@@ -34,13 +39,14 @@ export const WorkspaceDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('repos'); // 'repos' | 'reports' | 'members' | 'settings'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'repos' | 'reports' | 'members' | 'settings'
   const [workspace, setWorkspace] = useState(null);
   const [role, setRole] = useState(null);
   const [members, setMembers] = useState([]);
   const [invitations, setInvitations] = useState([]);
   const [repos, setRepos] = useState([]);
   const [reports, setReports] = useState([]);
+  const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState('');
@@ -82,13 +88,17 @@ export const WorkspaceDetail = () => {
       setLoading(true);
       setError(null);
 
-      // Parallel fetch of details, repos, and reports
-      const [detailsData, reposData, reportsData] = await Promise.all([
+      // Parallel fetch of overview, details, repos, and reports
+      const [overviewData, detailsData, reposData, reportsData] = await Promise.all([
+        workspaceApi.getWorkspaceOverview(id).catch(() => null),
         workspaceApi.getWorkspaceDetails(id),
         workspaceApi.getWorkspaceRepos(id).catch(() => ({ repositories: [] })),
         workspaceApi.getWorkspaceReports(id).catch(() => ({ reports: [] }))
       ]);
 
+      if (overviewData) {
+        setOverview(overviewData);
+      }
       setWorkspace(detailsData.workspace);
       setRole(detailsData.role);
       setMembers(detailsData.members || []);
@@ -371,10 +381,22 @@ export const WorkspaceDetail = () => {
       )}
 
       {/* Workspace Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-800">
+      <div className="flex items-center gap-2 border-b border-slate-800 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`flex items-center gap-2 py-3 px-4 border-b-2 text-xs font-semibold whitespace-nowrap transition ${
+            activeTab === 'overview'
+              ? 'border-emerald-400 text-emerald-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Project Overview</span>
+        </button>
+
         <button
           onClick={() => setActiveTab('repos')}
-          className={`flex items-center gap-2 py-3 px-4 border-b-2 text-xs font-semibold transition ${
+          className={`flex items-center gap-2 py-3 px-4 border-b-2 text-xs font-semibold whitespace-nowrap transition ${
             activeTab === 'repos'
               ? 'border-emerald-400 text-emerald-400'
               : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -386,7 +408,7 @@ export const WorkspaceDetail = () => {
 
         <button
           onClick={() => setActiveTab('reports')}
-          className={`flex items-center gap-2 py-3 px-4 border-b-2 text-xs font-semibold transition ${
+          className={`flex items-center gap-2 py-3 px-4 border-b-2 text-xs font-semibold whitespace-nowrap transition ${
             activeTab === 'reports'
               ? 'border-emerald-400 text-emerald-400'
               : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -398,7 +420,7 @@ export const WorkspaceDetail = () => {
 
         <button
           onClick={() => setActiveTab('members')}
-          className={`flex items-center gap-2 py-3 px-4 border-b-2 text-xs font-semibold transition ${
+          className={`flex items-center gap-2 py-3 px-4 border-b-2 text-xs font-semibold whitespace-nowrap transition ${
             activeTab === 'members'
               ? 'border-emerald-400 text-emerald-400'
               : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -411,7 +433,7 @@ export const WorkspaceDetail = () => {
         {isOwner && (
           <button
             onClick={() => setActiveTab('settings')}
-            className={`flex items-center gap-2 py-3 px-4 border-b-2 text-xs font-semibold transition ${
+            className={`flex items-center gap-2 py-3 px-4 border-b-2 text-xs font-semibold whitespace-nowrap transition ${
               activeTab === 'settings'
                 ? 'border-emerald-400 text-emerald-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -422,6 +444,286 @@ export const WorkspaceDetail = () => {
           </button>
         )}
       </div>
+
+      {/* TAB 0: Project Overview */}
+      {activeTab === 'overview' && (
+        <div className="space-y-8 animate-fadeIn">
+          {/* Workspace Pulse KPIs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-[#101625] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Shared Repositories</span>
+                <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <FolderGit2 className="w-4 h-4" />
+                </span>
+              </div>
+              <div className="text-3xl font-extrabold text-slate-100 font-mono">
+                {overview?.stats?.totalRepositories ?? repos.length}
+              </div>
+              <div className="text-xs text-slate-400 mt-1 font-mono">
+                {overview?.stats?.healthyReposCount ?? 0} Healthy · {overview?.stats?.needsAttentionReposCount ?? 0} Needs Attention
+              </div>
+            </div>
+
+            <div className="bg-[#101625] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Members</span>
+                <span className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  <Users className="w-4 h-4" />
+                </span>
+              </div>
+              <div className="text-3xl font-extrabold text-slate-100 font-mono">
+                {overview?.stats?.memberCount ?? members.length}
+              </div>
+              <div className="text-xs text-slate-400 mt-1 font-mono">
+                {overview?.stats?.pendingInviteCount ?? invitations.length} Pending Single-Use Invites
+              </div>
+            </div>
+
+            <div className="bg-[#101625] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Saved Reports</span>
+                <span className="p-1.5 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                  <FileText className="w-4 h-4" />
+                </span>
+              </div>
+              <div className="text-3xl font-extrabold text-slate-100 font-mono">
+                {overview?.stats?.totalReports ?? reports.length}
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                Immutable historical snapshots
+              </div>
+            </div>
+
+            <div className="bg-[#101625] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Critical Bottlenecks</span>
+                <span className="p-1.5 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                  <AlertTriangle className="w-4 h-4" />
+                </span>
+              </div>
+              <div className="text-3xl font-extrabold text-rose-400 font-mono">
+                {overview?.stats?.totalCriticalBottlenecks ?? 0}
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                Requiring priority team review
+              </div>
+            </div>
+          </div>
+
+          {/* Team Priorities Section */}
+          <div className="bg-[#101625] border border-slate-800/80 rounded-2xl p-6 shadow-xl shadow-black/40">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 pb-4 border-b border-slate-800">
+              <div>
+                <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+                  Team Priorities — What Should Our Team Investigate First?
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Deterministic bottlenecks aggregated across all workspace shared repositories, prioritized by critical severity and days inactive.
+                </p>
+              </div>
+
+              <span className="text-[11px] font-mono uppercase px-2.5 py-1 rounded bg-[#0c101a] text-slate-300 border border-slate-700/60 self-start sm:self-auto">
+                {overview?.teamPriorities?.length || 0} Priority Items
+              </span>
+            </div>
+
+            {!overview?.teamPriorities || overview.teamPriorities.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-400">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                {repos.length === 0
+                  ? 'No shared repositories in workspace yet. Add a repository to see team priorities.'
+                  : 'All shared repositories are in good health with no active collaboration bottlenecks detected.'}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {overview.teamPriorities.map((item, idx) => (
+                  <div
+                    key={item.findingKey || idx}
+                    className={`p-4 rounded-xl bg-[#0c101a] border transition flex flex-col md:flex-row md:items-start justify-between gap-3 ${
+                      item.severity === 'critical'
+                        ? 'border-rose-500/30 hover:border-rose-500/60'
+                        : 'border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                        <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700/60">
+                          {item.repoFullName}
+                        </span>
+
+                        <span className={`text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded ${
+                          item.severity === 'critical'
+                            ? 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
+                            : 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          {item.severity} · {item.daysInactive}d inactive
+                        </span>
+
+                        <span className="font-bold text-slate-100 text-sm">
+                          #{item.itemNumber}: {item.title}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-400 mb-2 leading-relaxed">
+                        {item.explanation}
+                      </p>
+
+                      {item.ruleBasedAction && (
+                        <div className="inline-block text-[11px] font-mono bg-slate-800/80 text-emerald-300 px-2.5 py-1 rounded border border-slate-700/60">
+                          Recommendation: {item.ruleBasedAction}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0">
+                      {item.url && (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-medium bg-[#101625] px-2.5 py-1.5 rounded-lg border border-slate-800 transition"
+                        >
+                          <span>GitHub</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+
+                      <Link
+                        to={`/reports/${item.reportId}`}
+                        className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-medium bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 px-2.5 py-1.5 rounded-lg transition"
+                      >
+                        <span>Snapshot</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Shared Repositories Summary Cards */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                <FolderGit2 className="w-5 h-5 text-cyan-400" />
+                Shared Repositories Health Status ({overview?.repositories?.length ?? repos.length})
+              </h3>
+              <button
+                onClick={() => setActiveTab('repos')}
+                className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1"
+              >
+                <span>Manage Repositories</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            {(!overview?.repositories || overview.repositories.length === 0) ? (
+              <div className="bg-[#101625] border border-slate-800/80 rounded-2xl p-10 text-center flex flex-col items-center">
+                <div className="w-14 h-14 rounded-2xl bg-[#0c101a] border border-slate-800 flex items-center justify-center text-slate-500 mb-4">
+                  <FolderGit2 className="w-7 h-7" />
+                </div>
+                <h3 className="text-base font-semibold text-slate-100">No Shared Repositories Yet</h3>
+                <p className="text-sm text-slate-400 max-w-md mt-1 mb-4">
+                  Add public GitHub repositories to this workspace so team members can monitor collaboration bottlenecks together.
+                </p>
+                <button
+                  onClick={() => setActiveTab('repos')}
+                  className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg transition"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add First Repository</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {overview.repositories.map((repo) => {
+                  const latest = repo.latestReport;
+                  return (
+                    <div
+                      key={repo._id}
+                      className="bg-[#101625] border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700 hover:shadow-xl transition group"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <span className="font-bold text-slate-100 text-base group-hover:text-emerald-400 transition truncate">
+                            {repo.fullName}
+                          </span>
+
+                          {latest ? (
+                            <span className={`text-[10px] uppercase font-bold font-mono px-2 py-0.5 rounded-full border ${
+                              latest.healthScore >= 75
+                                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                                : latest.healthScore >= 50
+                                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                                : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                            }`}>
+                              {latest.healthScore}/100 {latest.healthStatus}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] uppercase font-bold font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700/60">
+                              Unassessed
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs text-slate-400 line-clamp-2 min-h-[32px] mb-4">
+                          {repo.description || 'Public GitHub Repository'}
+                        </p>
+
+                        {latest ? (
+                          <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-400 mb-4 p-2.5 rounded-xl bg-[#0c101a] border border-slate-800/80">
+                            <div>Open PRs: <span className="text-slate-200 font-bold">{latest.openPullRequestsCount}</span></div>
+                            <div>Merged: <span className="text-emerald-400 font-bold">{latest.mergedPullRequestsCount}</span></div>
+                            <div>Issues: <span className="text-slate-200 font-bold">{latest.openIssuesCount}</span></div>
+                            <div>Critical: <span className="text-rose-400 font-bold">{latest.criticalFindingsCount || 0}</span></div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-500 mb-4 italic">
+                            No persistent health reports generated yet.
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 flex-wrap">
+                        <Link
+                          to={`/workspaces/${id}/repos/${repo._id}/health`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg transition"
+                        >
+                          <Activity className="w-3.5 h-3.5" />
+                          <span>Live Health</span>
+                        </Link>
+
+                        {repo.canCompare ? (
+                          <Link
+                            to={`/reports/compare?repo=${encodeURIComponent(repo.fullName)}&workspaceId=${id}`}
+                            className="inline-flex items-center gap-1 text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-3 py-1.5 rounded-lg transition"
+                            title="Compare saved snapshots"
+                          >
+                            <GitCompare className="w-3.5 h-3.5" />
+                            <span>Compare ({repo.reportCount})</span>
+                          </Link>
+                        ) : (
+                          <button
+                            onClick={() => handleGenerateWorkspaceReport(repo._id)}
+                            disabled={generatingReportId === repo._id}
+                            className="inline-flex items-center gap-1 text-xs font-semibold bg-[#0d121f] hover:bg-slate-800 text-slate-300 border border-slate-700/80 px-2.5 py-1.5 rounded-lg transition disabled:opacity-50"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>{generatingReportId === repo._id ? 'Saving...' : 'Save Report'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: Shared Repositories */}
       {activeTab === 'repos' && (
@@ -563,7 +865,7 @@ export const WorkspaceDetail = () => {
       {/* TAB 2: Workspace Persistent Reports */}
       {activeTab === 'reports' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-emerald-400" />
@@ -573,6 +875,16 @@ export const WorkspaceDetail = () => {
                 Saved immutable snapshots capturing metrics and explainable bottleneck findings at the moment of generation.
               </p>
             </div>
+
+            {reports.length >= 2 && (
+              <Link
+                to={`/reports/compare?workspaceId=${id}&repo=${encodeURIComponent(reports[0]?.repository?.fullName || '')}`}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-3.5 py-2 rounded-xl transition shadow-lg shrink-0"
+              >
+                <GitCompare className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Compare Snapshots</span>
+              </Link>
+            )}
           </div>
 
           {reports.length === 0 ? (
@@ -634,13 +946,24 @@ export const WorkspaceDetail = () => {
                           {new Date(rep.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <Link
-                            to={`/reports/${rep._id}`}
-                            className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-lg transition"
-                          >
-                            <span>View Snapshot</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </Link>
+                          <div className="flex items-center justify-end gap-2">
+                            <Link
+                              to={`/reports/compare?repo=${encodeURIComponent(rep.repository?.fullName || '')}&workspaceId=${id}`}
+                              className="inline-flex items-center gap-1 text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2.5 py-1 rounded-lg transition"
+                              title="Compare snapshots of this repository"
+                            >
+                              <GitCompare className="w-3 h-3" />
+                              <span className="hidden sm:inline">Compare</span>
+                            </Link>
+
+                            <Link
+                              to={`/reports/${rep._id}`}
+                              className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-lg transition"
+                            >
+                              <span>View Snapshot</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))}
