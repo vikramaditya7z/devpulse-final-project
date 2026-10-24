@@ -21,7 +21,8 @@ import {
   Zap,
   BarChart3,
   Sliders,
-  Terminal
+  Terminal,
+  Sparkles
 } from 'lucide-react';
 
 export const Landing = () => {
