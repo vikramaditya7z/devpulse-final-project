@@ -3,7 +3,7 @@
 DevPulse is a collaborative web platform designed for engineering teams and student project groups to monitor public GitHub repositories, calculate deterministic health metrics, and identify collaboration bottlenecks such as stale issues, overdue pull requests, and review deadlocks.
 
 **Live Production Deployment:** [https://devpulse-final-project.onrender.com](https://devpulse-final-project.onrender.com)  
-**University Submission Date:** October 27, 2026  
+**Demo Video:** https://drive.google.com/drive/folders/1BLS3QTjA49BH4OEEJK_DlqL6YRipqNb9?usp=sharing
 
 ---
 
